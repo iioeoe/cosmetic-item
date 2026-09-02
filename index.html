@@ -1,0 +1,943 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>내 화장품 컬렉션</title>
+<style>
+  :root{
+    --bg:#FBF7F2;
+    --card:#FFFFFF;
+    --border:#ECE6DD;
+    --text:#3D332C;
+    --text-sub:#8A7F72;
+    --text-mute:#B3A99C;
+    --coral-bg:#F7DCC9; --coral-tx:#7A4B2E;
+    --blue-bg:#D9E6F2;  --blue-tx:#2E5578;
+    --purple-bg:#E3DCF2; --purple-tx:#4A3B78;
+    --pink-bg:#F4DCE6;  --pink-tx:#7A3B54;
+    --amber-bg:#F7E9C9; --amber-tx:#7A5B1E;
+    --sale-bg:#DCEFDC; --sale-tx:#2E6B3E;
+    --plain-bg:#EDEBE6; --plain-tx:#8A8478;
+    --danger:#C4574A;
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0; background:var(--bg); color:var(--text);
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Apple SD Gothic Neo","Malgun Gothic",sans-serif;
+    -webkit-font-smoothing:antialiased;
+  }
+  .wrap{max-width:640px; margin:0 auto; padding:20px 16px 60px;}
+  @media(min-width:720px){ .wrap{ padding:36px 24px 80px; } }
+
+  header{display:flex; align-items:center; justify-content:space-between; margin-bottom:16px;}
+  header h1{font-size:19px; font-weight:600; margin:0;}
+  header p{font-size:12px; color:var(--text-sub); margin:2px 0 0;}
+  #mainAddBtn{
+    background:var(--text); color:#fff; border:none; border-radius:20px;
+    padding:9px 16px; font-size:13px; font-weight:600; cursor:pointer;
+  }
+  #mainAddBtn:active{opacity:.85;}
+  #mainAddBtn.hidden{display:none;}
+
+  .tabbar{display:flex; gap:4px; background:var(--plain-bg); border-radius:14px; padding:4px; margin-bottom:20px;}
+  .tabbar button{flex:1; border:none; background:none; padding:9px 0; border-radius:11px; font-size:13px; font-weight:600; color:var(--text-sub); cursor:pointer;}
+  .tabbar button.active{background:#fff; color:var(--text); box-shadow:0 1px 3px rgba(0,0,0,0.06);}
+
+  .tabpanel{display:none;}
+  .tabpanel.active{display:block;}
+
+  .stats{display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-bottom:22px;}
+  @media(min-width:560px){ .stats{grid-template-columns:repeat(4,1fr);} }
+  .stat{border-radius:14px; padding:14px;}
+  .stat .lbl{font-size:11.5px; opacity:.75; margin:0 0 6px;}
+  .stat .val{font-size:18px; font-weight:600; margin:0;}
+  .stat.c1{background:var(--coral-bg); color:var(--coral-tx);}
+  .stat.c2{background:var(--blue-bg); color:var(--blue-tx);}
+  .stat.c3{background:var(--purple-bg); color:var(--purple-tx);}
+  .stat.c4{background:var(--pink-bg); color:var(--pink-tx);}
+
+  .sectionTitle{font-size:13.5px; font-weight:600; margin:0 0 10px; color:var(--text);}
+  .empty{
+    text-align:center; padding:40px 16px; color:var(--text-sub); font-size:13.5px;
+    border:1px dashed var(--border); border-radius:14px;
+  }
+
+  .unopenedGrid{display:grid; grid-template-columns:1fr 1fr; gap:10px;}
+  @media(min-width:560px){.unopenedGrid{grid-template-columns:repeat(3,1fr);}}
+  .uCard{border-radius:12px; padding:12px; display:flex; flex-direction:column; gap:10px; min-height:76px;}
+  .uCard .b{font-size:11px; opacity:.8; margin:0;}
+  .uCard .n{font-size:13px; font-weight:600; line-height:1.35; margin:0;}
+  .uCard .cnt{font-size:12px; font-weight:700; margin:0;}
+
+  #formSection, #eventFormSection{
+    display:none; background:rgba(255,255,255,0.78); border:0.5px solid var(--border);
+    border-radius:14px; padding:16px; margin-bottom:22px; backdrop-filter:blur(6px);
+  }
+  #formSection.open, #eventFormSection.open{display:block;}
+  #formSection h2, #eventFormSection h2{font-size:14px; font-weight:600; margin:0 0 12px;}
+  .field{margin-bottom:10px;}
+  .field label{display:block; font-size:12px; color:var(--text-sub); margin-bottom:4px;}
+  .field input{
+    width:100%; padding:9px 10px; border:1px solid var(--border); border-radius:8px;
+    font-size:14px; color:var(--text); background:rgba(255,255,255,0.58);
+  }
+  .field input:focus{outline:none; border-color:var(--text-mute);}
+  .row2{display:grid; grid-template-columns:1fr 1fr; gap:10px;}
+  .dateGroup{display:flex; align-items:center; gap:4px;}
+  .dateGroup input{
+    width:auto; flex:1; min-width:0; text-align:center;
+    padding:9px 4px; border:1px solid var(--border); border-radius:8px;
+    font-size:14px; color:var(--text); background:rgba(255,255,255,0.58);
+  }
+  .dateGroup input.dy{flex:1.3;}
+  .dateGroup span{color:var(--text-mute); font-size:13px; flex-shrink:0;}
+  .dateGroup.mini input{padding:6px 3px; font-size:12px;}
+  .formBtns{display:flex; gap:8px; margin-top:14px;}
+  .formBtns button{
+    flex:1; padding:10px; border-radius:9px; font-size:13.5px; font-weight:600; cursor:pointer; border:none;
+  }
+  .btnPrimary{background:var(--text); color:#fff;}
+  .btnGhost{background:var(--plain-bg); color:var(--text-sub);}
+  .err{font-size:12px; color:var(--danger); margin-top:2px; display:none;}
+
+  .filterRow{display:flex; gap:6px; margin-bottom:14px; flex-wrap:wrap;}
+  .chip{border:1px solid var(--border); background:#fff; color:var(--text-sub); font-size:12.5px; font-weight:600; padding:6px 12px; border-radius:20px; cursor:pointer;}
+  .chip.active{background:var(--text); color:#fff; border-color:var(--text);}
+
+  .brandCard{border-radius:14px; overflow:hidden; border:0.5px solid var(--border); margin-bottom:12px;}
+  .brandHead{display:flex; align-items:center; gap:10px; padding:13px 14px;}
+  .brandHead .name{flex:1; min-width:0;}
+  .brandHead .name p.n{font-size:14.5px; font-weight:600; margin:0;}
+  .brandHead .name p.c{font-size:11px; margin:2px 0 0; opacity:.75;}
+  .brandHead .total{font-size:13.5px; font-weight:600;}
+  .bh1{background:var(--coral-bg); color:var(--coral-tx);}
+  .bh2{background:var(--blue-bg); color:var(--blue-tx);}
+  .bh3{background:var(--purple-bg); color:var(--purple-tx);}
+  .bh4{background:var(--pink-bg); color:var(--pink-tx);}
+  .bh5{background:var(--amber-bg); color:var(--amber-tx);}
+
+  .productList{background:rgba(255,255,255,0.78); padding:0 14px; backdrop-filter:blur(6px);}
+
+  .productGroup{padding:10px 0; border-bottom:0.5px solid var(--border);}
+  .productGroup:last-child{border-bottom:none;}
+  .productGroupHead{margin-bottom:2px;}
+  .productGroupHead .gn{font-size:13.5px; font-weight:600; margin:0;}
+  .productGroupHead .gc{font-size:11px; font-weight:400; color:var(--text-sub); margin-left:4px;}
+
+  .batch{padding:8px 0; border-bottom:0.5px dashed var(--border);}
+  .batch:last-child{border-bottom:none;}
+  .batchHead{display:flex; align-items:center; gap:8px;}
+  .batchHead .bi{flex:1; min-width:0; cursor:pointer;}
+  .batchHead .bi p{margin:0;}
+  .batchHead .bi p.bcount{font-size:12.5px; font-weight:600; color:var(--text);}
+  .batchHead .bi p.bmeta{font-size:11px; color:var(--text-sub); margin-top:2px; line-height:1.5;}
+  .batchHead .actions{display:flex; align-items:center; gap:10px; flex-shrink:0;}
+  .batchHead .actions button{border:none; background:none; color:var(--text-mute); font-size:11px; cursor:pointer;}
+  .batchHead .actions button:hover{color:var(--text-sub);}
+  .batchHead .chev{font-size:10px; color:var(--text-mute); flex-shrink:0;}
+
+  .unitList{margin-top:8px; padding-left:10px; border-left:2px solid var(--border);}
+  .unit{display:flex; align-items:center; justify-content:space-between; gap:8px; padding:6px 0;}
+  .unit.done{opacity:.55;}
+  .unit .ul{font-size:11.5px; color:var(--text-sub);}
+  .unit .ur{display:flex; align-items:center; gap:6px; flex-shrink:0;}
+  .statusBadge{font-size:10px; padding:3px 7px; border-radius:8px; font-weight:600; white-space:nowrap;}
+  .statusBadge.unopened{background:var(--plain-bg); color:var(--plain-tx);}
+  .statusBadge.inuse{background:var(--amber-bg); color:var(--amber-tx);}
+  .statusBadge.used{background:#EFEAE3; color:#A79C8C;}
+  .miniBtn{border:none; background:none; font-size:10.5px; color:var(--text-mute); cursor:pointer; padding:0;}
+  .miniBtn:hover{color:var(--text-sub);}
+  .miniBtn.del:hover{color:var(--danger);}
+
+  .inlineDateForm{display:flex; align-items:center; gap:6px; margin:6px 0; flex-wrap:wrap;}
+  .inlineDateForm button{font-size:11px; padding:5px 9px; border-radius:6px; border:none; cursor:pointer; flex-shrink:0;}
+  .inlineDateForm .ok{background:var(--text); color:#fff;}
+  .inlineDateForm .no{background:var(--plain-bg); color:var(--text-sub);}
+
+  .calHead{display:flex; align-items:center; justify-content:space-between; margin-bottom:14px;}
+  .calHead button{border:none; background:var(--plain-bg); width:30px; height:30px; border-radius:8px; font-size:14px; cursor:pointer; color:var(--text-sub);}
+  .calHead .ym{font-size:15px; font-weight:600;}
+  .calGrid{display:grid; grid-template-columns:repeat(7,1fr); gap:4px; margin-bottom:18px;}
+  .calGrid .dow{text-align:center; font-size:11px; color:var(--text-mute); padding-bottom:4px;}
+  .calCell{aspect-ratio:1; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:2px; border-radius:10px; cursor:pointer; font-size:12.5px; color:var(--text); background:#fff; border:1px solid var(--border);}
+  .calCell.empty{visibility:hidden; cursor:default;}
+  .calCell.today{border-color:var(--text-mute); font-weight:700;}
+  .calCell.selected{background:var(--text); color:#fff; border-color:var(--text);}
+  .calCell .dot{width:5px; height:5px; border-radius:50%; background:var(--coral-tx);}
+  .calCell.selected .dot{background:#fff;}
+
+  .eventItem{display:flex; justify-content:space-between; align-items:flex-start; gap:8px; padding:10px 0; border-bottom:0.5px solid var(--border);}
+  .eventItem:last-child{border-bottom:none;}
+  .eventItem .et .d{font-size:11px; color:var(--text-mute); margin:0 0 2px;}
+  .eventItem .et .t{font-size:13.5px; font-weight:600; margin:0;}
+  .eventItem .et .m{font-size:11.5px; color:var(--text-sub); margin:2px 0 0;}
+  .eventItem .miniBtn{font-size:11px;}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header>
+    <div>
+      <h1>내 화장품 컬렉션</h1>
+      <p>브랜드 · 상품별 구매 기록</p>
+    </div>
+    <button id="mainAddBtn" onclick="onMainAddClick()">+ 추가</button>
+  </header>
+
+  <div class="tabbar">
+    <button id="tabBtn_home" class="active" onclick="switchTab('home')">홈</button>
+    <button id="tabBtn_list" onclick="switchTab('list')">리스트</button>
+    <button id="tabBtn_schedule" onclick="switchTab('schedule')">스케줄</button>
+  </div>
+
+  <!-- ===== 홈 탭 ===== -->
+  <div id="panel_home" class="tabpanel active">
+    <div class="stats" id="stats"></div>
+    <p class="sectionTitle">미개봉 현황</p>
+    <div id="unopenedGrid"></div>
+  </div>
+
+  <!-- ===== 리스트 탭 ===== -->
+  <div id="panel_list" class="tabpanel">
+
+    <div id="formSection">
+      <h2 id="formTitle">화장품 추가</h2>
+      <div class="field">
+        <label>브랜드</label>
+        <input type="text" id="f_brand" placeholder="예: 이니스프리">
+      </div>
+      <div class="field">
+        <label>제품명</label>
+        <input type="text" id="f_name" placeholder="예: 그린티 세럼">
+      </div>
+      <div class="field">
+        <label>구매일</label>
+        <div class="dateGroup">
+          <input type="text" id="f_date_y" class="dy" maxlength="4" inputmode="numeric" placeholder="YYYY">
+          <span>.</span>
+          <input type="text" id="f_date_m" maxlength="2" inputmode="numeric" placeholder="MM">
+          <span>.</span>
+          <input type="text" id="f_date_d" maxlength="2" inputmode="numeric" placeholder="DD">
+        </div>
+      </div>
+      <div class="row2" id="qtyField">
+        <div class="field">
+          <label>수량</label>
+          <input type="number" id="f_qty" min="1" value="1">
+        </div>
+        <div class="field">
+          <label>정상가 (개당)</label>
+          <input type="number" id="f_regular" placeholder="32000">
+        </div>
+      </div>
+      <div class="field" id="regularOnlyField" style="display:none;">
+        <label>정상가</label>
+        <input type="number" id="f_regular_edit" placeholder="32000">
+      </div>
+      <div class="row2">
+        <div class="field">
+          <label>구매금액 (개당)</label>
+          <input type="number" id="f_paid" placeholder="25000">
+        </div>
+        <div class="field">
+          <label>구매처 (선택)</label>
+          <input type="text" id="f_store" placeholder="예: 올리브영">
+        </div>
+      </div>
+      <div class="field">
+        <label>유효기간 (선택)</label>
+        <div class="dateGroup">
+          <input type="text" id="f_expiry_y" class="dy" maxlength="4" inputmode="numeric" placeholder="YYYY">
+          <span>.</span>
+          <input type="text" id="f_expiry_m" maxlength="2" inputmode="numeric" placeholder="MM">
+          <span>.</span>
+          <input type="text" id="f_expiry_d" maxlength="2" inputmode="numeric" placeholder="DD">
+        </div>
+      </div>
+      <p class="err" id="formErr">브랜드, 제품명, 구매일(년4자리), 정상가, 구매금액은 필수예요.</p>
+      <div class="formBtns">
+        <button class="btnPrimary" onclick="saveUnit()">저장</button>
+        <button class="btnGhost" onclick="closeForm()">취소</button>
+      </div>
+    </div>
+
+    <div class="filterRow" id="filterRow"></div>
+
+    <p class="sectionTitle">브랜드별 보유 현황</p>
+    <div id="brandList"></div>
+  </div>
+
+  <!-- ===== 스케줄 탭 ===== -->
+  <div id="panel_schedule" class="tabpanel">
+
+    <div id="eventFormSection">
+      <h2>세일 일정 추가</h2>
+      <div class="field">
+        <label>날짜</label>
+        <div class="dateGroup">
+          <input type="text" id="f_ev_y" class="dy" maxlength="4" inputmode="numeric" placeholder="YYYY">
+          <span>.</span>
+          <input type="text" id="f_ev_m" maxlength="2" inputmode="numeric" placeholder="MM">
+          <span>.</span>
+          <input type="text" id="f_ev_d" maxlength="2" inputmode="numeric" placeholder="DD">
+        </div>
+      </div>
+      <div class="field">
+        <label>브랜드 / 스토어명</label>
+        <input type="text" id="f_ev_title" placeholder="예: 올리브영 세일">
+      </div>
+      <div class="field">
+        <label>메모 (선택)</label>
+        <input type="text" id="f_ev_memo" placeholder="예: 30% 할인, 온라인 한정">
+      </div>
+      <p class="err" id="eventErr">날짜(년4자리)와 브랜드/스토어명은 필수예요.</p>
+      <div class="formBtns">
+        <button class="btnPrimary" onclick="saveEvent()">저장</button>
+        <button class="btnGhost" onclick="closeEventForm()">취소</button>
+      </div>
+    </div>
+
+    <div class="calHead">
+      <button onclick="navCal(-1)">‹</button>
+      <span class="ym" id="calYm"></span>
+      <button onclick="navCal(1)">›</button>
+    </div>
+    <div class="calGrid" id="calGrid"></div>
+
+    <p class="sectionTitle" id="eventListTitle">이달의 세일 일정</p>
+    <div id="eventList"></div>
+  </div>
+
+</div>
+
+<script>
+/* ===================== 상태 ===================== */
+let units = [];
+let events = [];
+let activeTab = 'home';
+let formMode = 'add';       // 'add' | 'edit'
+let editingId = null;
+let filterStatus = 'all';   // all | unopened | inuse | used
+let openingUnitId = null;
+let finishingUnitId = null;
+let editingEventId = null;
+let calViewYear, calViewMonth;
+let selectedDate = null;
+
+const brandColorMap = {};
+const colorClasses = ['bh1','bh2','bh3','bh4','bh5'];
+const statColorClasses = ['c1','c2','c3','c4'];
+
+const today = new Date();
+const todayIso = today.toISOString().slice(0,10);
+
+/* ===================== jsonbin.io 연동 ===================== */
+const JSONBIN_BIN_ID = '6a97df70da38895dfe2e7bb1';
+const JSONBIN_ACCESS_KEY = '$2a$10$sD1vI7OeFUrrJCLUmit5xOyhS0Hbsbza.Ba/Wn5qbADkyotohm64O'; // 이 bin에 한해 읽기/쓰기만 가능한 Access Key
+const JSONBIN_BASE = 'https://api.jsonbin.io/v3/b/' + JSONBIN_BIN_ID;
+
+let saveTimer = null;
+
+/* ===================== 초기 로드 ===================== */
+async function loadAll(){
+  try{
+    const res = await fetch(JSONBIN_BASE + '/latest', {
+      headers: { 'X-Access-Key': JSONBIN_ACCESS_KEY }
+    });
+    const data = await res.json();
+    const record = (data && data.record) ? data.record : {};
+    units = Array.isArray(record.units) ? record.units : [];
+    events = Array.isArray(record.events) ? record.events : [];
+  }catch(e){
+    console.error('불러오기 실패', e);
+    units = []; events = [];
+  }
+
+  calViewYear = today.getFullYear();
+  calViewMonth = today.getMonth();
+
+  bindDateGroup('f_date');
+  bindDateGroup('f_expiry');
+  bindDateGroup('f_ev');
+
+  render();
+}
+
+/* units와 events를 하나로 묶어 bin 하나에 저장 (연타 방지를 위해 살짝 디바운스) */
+function persistAll(){
+  clearTimeout(saveTimer);
+  saveTimer = setTimeout(async () => {
+    try{
+      await fetch(JSONBIN_BASE, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-Access-Key': JSONBIN_ACCESS_KEY
+        },
+        body: JSON.stringify({ units, events })
+      });
+    }catch(e){
+      console.error('저장 실패', e);
+    }
+  }, 300);
+}
+/* 기존 호출부와의 호환을 위한 별칭 */
+function persistUnits(){ persistAll(); }
+function persistEvents(){ persistAll(); }
+
+/* ===================== 공용 유틸 ===================== */
+function fmt(n){ return Math.round(n).toLocaleString('ko-KR') + '원'; }
+function discountPct(regular, paid){
+  if(!regular || regular <= 0) return 0;
+  return Math.round((1 - (paid / regular)) * 100);
+}
+function colorFor(brand){
+  if(!(brand in brandColorMap)){
+    const idx = Object.keys(brandColorMap).length % colorClasses.length;
+    brandColorMap[brand] = colorClasses[idx];
+  }
+  return brandColorMap[brand];
+}
+function escapeHtml(s){
+  const d = document.createElement('div');
+  d.textContent = s == null ? '' : s;
+  return d.innerHTML;
+}
+function dispDate(iso){ return iso ? iso.replace(/-/g,'.') : '-'; }
+
+/* ---- 날짜 3분할 입력 (연4자리 → 자동 월 이동) ---- */
+function bindDateGroup(prefix){
+  const y = document.getElementById(prefix+'_y');
+  const m = document.getElementById(prefix+'_m');
+  const d = document.getElementById(prefix+'_d');
+  if(!y || !m || !d) return;
+  y.addEventListener('input', () => {
+    y.value = y.value.replace(/\D/g,'').slice(0,4);
+    if(y.value.length === 4) m.focus();
+  });
+  m.addEventListener('input', () => {
+    m.value = m.value.replace(/\D/g,'').slice(0,2);
+    if(m.value.length === 2) d.focus();
+  });
+  d.addEventListener('input', () => {
+    d.value = d.value.replace(/\D/g,'').slice(0,2);
+  });
+}
+function getDateValue(prefix){
+  const y = document.getElementById(prefix+'_y').value;
+  const m = document.getElementById(prefix+'_m').value;
+  const d = document.getElementById(prefix+'_d').value;
+  if(!y && !m && !d) return {status:'empty', value:''};
+  if(y.length === 4 && m.length >= 1 && d.length >= 1){
+    return {status:'ok', value: `${y}-${m.padStart(2,'0')}-${d.padStart(2,'0')}`};
+  }
+  return {status:'incomplete', value:''};
+}
+function setDateValue(prefix, iso){
+  const y = document.getElementById(prefix+'_y');
+  const m = document.getElementById(prefix+'_m');
+  const d = document.getElementById(prefix+'_d');
+  if(iso){
+    const [yy,mm,dd] = iso.split('-');
+    y.value = yy; m.value = mm; d.value = dd;
+  }else{
+    y.value = ''; m.value = ''; d.value = '';
+  }
+}
+function dateGroupHtml(prefix){
+  return `<div class="dateGroup mini">
+    <input type="text" id="${prefix}_y" maxlength="4" inputmode="numeric" placeholder="YYYY">
+    <span>.</span>
+    <input type="text" id="${prefix}_m" maxlength="2" inputmode="numeric" placeholder="MM">
+    <span>.</span>
+    <input type="text" id="${prefix}_d" maxlength="2" inputmode="numeric" placeholder="DD">
+  </div>`;
+}
+
+/* ===================== 탭 전환 ===================== */
+function switchTab(tab){
+  activeTab = tab;
+  ['home','list','schedule'].forEach(t => {
+    document.getElementById('tabBtn_'+t).classList.toggle('active', t===tab);
+    document.getElementById('panel_'+t).classList.toggle('active', t===tab);
+  });
+  const btn = document.getElementById('mainAddBtn');
+  if(tab === 'home'){
+    btn.classList.add('hidden');
+  }else{
+    btn.classList.remove('hidden');
+    btn.textContent = tab === 'list' ? '+ 추가' : '+ 일정';
+  }
+  if(tab === 'schedule') renderSchedule();
+}
+function onMainAddClick(){
+  if(activeTab === 'list') openAddForm();
+  else if(activeTab === 'schedule') openEventForm();
+}
+
+/* ===================== 화장품 폼 ===================== */
+function setFormMode(mode){
+  formMode = mode;
+  document.getElementById('qtyField').style.display = mode === 'edit' ? 'none' : 'grid';
+  document.getElementById('regularOnlyField').style.display = mode === 'edit' ? 'block' : 'none';
+}
+function clearForm(){
+  document.getElementById('f_brand').value = '';
+  document.getElementById('f_name').value = '';
+  document.getElementById('f_store').value = '';
+  document.getElementById('f_qty').value = 1;
+  document.getElementById('f_regular').value = '';
+  document.getElementById('f_regular_edit').value = '';
+  document.getElementById('f_paid').value = '';
+  setDateValue('f_date', '');
+  setDateValue('f_expiry', '');
+  document.getElementById('formErr').style.display = 'none';
+}
+function openAddForm(){
+  editingId = null;
+  setFormMode('add');
+  document.getElementById('formTitle').textContent = '화장품 추가';
+  clearForm();
+  document.getElementById('formSection').classList.add('open');
+  window.scrollTo({top:0, behavior:'smooth'});
+}
+function closeForm(){
+  document.getElementById('formSection').classList.remove('open');
+  editingId = null;
+  clearForm();
+}
+function openEditForm(id){
+  const u = units.find(x => x.id === id);
+  if(!u) return;
+  editingId = id;
+  setFormMode('edit');
+  document.getElementById('formTitle').textContent = '화장품 수정';
+  document.getElementById('f_brand').value = u.brand;
+  document.getElementById('f_name').value = u.name;
+  document.getElementById('f_regular_edit').value = u.regular;
+  document.getElementById('f_paid').value = u.paid;
+  document.getElementById('f_store').value = u.store || '';
+  setDateValue('f_date', u.purchaseDate);
+  setDateValue('f_expiry', u.expiry || '');
+  document.getElementById('formSection').classList.add('open');
+  window.scrollTo({top:0, behavior:'smooth'});
+}
+function openCopyForm(id){
+  const src = units.find(x => x.id === id);
+  if(!src) return;
+  editingId = null;
+  setFormMode('add');
+  document.getElementById('formTitle').textContent = '재구매 기록 추가';
+  document.getElementById('f_brand').value = src.brand;
+  document.getElementById('f_name').value = src.name;
+  document.getElementById('f_regular').value = src.regular;
+  document.getElementById('f_paid').value = '';
+  document.getElementById('f_store').value = src.store || '';
+  document.getElementById('f_qty').value = 1;
+  setDateValue('f_date', '');
+  setDateValue('f_expiry', '');
+  document.getElementById('formSection').classList.add('open');
+  window.scrollTo({top:0, behavior:'smooth'});
+}
+function deleteUnit(id){
+  units = units.filter(x => x.id !== id);
+  persistUnits();
+  render();
+}
+function saveUnit(){
+  const brand = document.getElementById('f_brand').value.trim();
+  const name = document.getElementById('f_name').value.trim();
+  const store = document.getElementById('f_store').value.trim();
+  const paid = parseFloat(document.getElementById('f_paid').value);
+  const dateRes = getDateValue('f_date');
+  const expiryRes = getDateValue('f_expiry');
+
+  let regular, qty;
+  if(formMode === 'edit'){
+    regular = parseFloat(document.getElementById('f_regular_edit').value);
+    qty = 1;
+  }else{
+    regular = parseFloat(document.getElementById('f_regular').value);
+    qty = parseInt(document.getElementById('f_qty').value) || 1;
+  }
+
+  const valid = brand && name && dateRes.status === 'ok' &&
+    !isNaN(regular) && regular > 0 && !isNaN(paid) && paid >= 0 &&
+    expiryRes.status !== 'incomplete';
+
+  if(!valid){
+    document.getElementById('formErr').style.display = 'block';
+    return;
+  }
+  document.getElementById('formErr').style.display = 'none';
+
+  const base = {
+    brand, name, store,
+    purchaseDate: dateRes.value,
+    regular, paid,
+    expiry: expiryRes.value
+  };
+
+  if(formMode === 'edit' && editingId){
+    const u = units.find(x => x.id === editingId);
+    Object.assign(u, base);
+  }else{
+    for(let i=0; i<qty; i++){
+      units.push({
+        id: Date.now().toString(36) + Math.random().toString(36).slice(2,7) + i,
+        ...base,
+        status: 'unopened',
+        openDate: '',
+        finishDate: ''
+      });
+    }
+  }
+  persistUnits();
+  closeForm();
+  render();
+}
+
+/* ---- 상태 변경 (사용 시작 / 다 썼어요) ---- */
+function startOpen(id){ openingUnitId = id; finishingUnitId = null; render(); }
+function cancelOpen(){ openingUnitId = null; render(); }
+function confirmOpen(id){
+  const res = getDateValue('open_'+id);
+  if(res.status !== 'ok') return;
+  const u = units.find(x => x.id === id);
+  u.status = 'inuse'; u.openDate = res.value;
+  openingUnitId = null;
+  persistUnits(); render();
+}
+function startFinish(id){ finishingUnitId = id; openingUnitId = null; render(); }
+function cancelFinish(){ finishingUnitId = null; render(); }
+function confirmFinish(id){
+  const res = getDateValue('finish_'+id);
+  if(res.status !== 'ok') return;
+  const u = units.find(x => x.id === id);
+  u.status = 'used'; u.finishDate = res.value;
+  finishingUnitId = null;
+  persistUnits(); render();
+}
+
+/* ===================== 렌더링 ===================== */
+function render(){
+  renderStats();
+  renderHomeUnopened();
+  renderFilterRow();
+  renderList();
+}
+
+function renderStats(){
+  let totalSpent = 0, totalSaved = 0, discSum = 0, discCount = 0;
+  units.forEach(u => {
+    totalSpent += u.paid;
+    const saved = u.regular - u.paid;
+    if(saved > 0) totalSaved += saved;
+    const d = discountPct(u.regular, u.paid);
+    if(d > 0){ discSum += d; discCount++; }
+  });
+  const avgDisc = discCount ? Math.round(discSum / discCount) : 0;
+  const stats = [
+    {lbl:'총 지출', val: fmt(totalSpent)},
+    {lbl:'보유 제품 수', val: units.length + '개'},
+    {lbl:'세일로 절약한 금액', val: fmt(totalSaved)},
+    {lbl:'평균 할인율', val: avgDisc + '%'}
+  ];
+  document.getElementById('stats').innerHTML = stats.map((s,i) =>
+    `<div class="stat ${statColorClasses[i]}"><p class="lbl">${s.lbl}</p><p class="val">${s.val}</p></div>`
+  ).join('');
+}
+
+function renderHomeUnopened(){
+  const el = document.getElementById('unopenedGrid');
+  const unopened = units.filter(u => u.status === 'unopened');
+  if(unopened.length === 0){
+    el.innerHTML = '<div class="empty">현재 미개봉 상태인 제품이 없어요.</div>';
+    return;
+  }
+  const byKey = {};
+  unopened.forEach(u => {
+    const key = u.brand + '|' + u.name;
+    if(!byKey[key]) byKey[key] = {brand:u.brand, name:u.name, count:0};
+    byKey[key].count++;
+  });
+  const list = Object.values(byKey).sort((a,b) => b.count - a.count);
+  el.innerHTML = `<div class="unopenedGrid">${list.map(item => `
+    <div class="uCard ${colorFor(item.brand)}">
+      <p class="b">${escapeHtml(item.brand)}</p>
+      <p class="n">${escapeHtml(item.name)}</p>
+      <p class="cnt">미개봉 ${item.count}개</p>
+    </div>`).join('')}</div>`;
+}
+
+function renderFilterRow(){
+  const counts = {all: units.length, unopened:0, inuse:0, used:0};
+  units.forEach(u => counts[u.status]++);
+  const labels = [
+    {key:'all', label:'전체'},
+    {key:'unopened', label:'미개봉'},
+    {key:'inuse', label:'사용중'},
+    {key:'used', label:'다씀'}
+  ];
+  document.getElementById('filterRow').innerHTML = labels.map(l =>
+    `<button class="chip ${filterStatus===l.key?'active':''}" onclick="setFilter('${l.key}')">${l.label} (${counts[l.key]})</button>`
+  ).join('');
+}
+function setFilter(key){ filterStatus = key; render(); }
+
+function renderList(){
+  const container = document.getElementById('brandList');
+  const filtered = filterStatus === 'all' ? units : units.filter(u => u.status === filterStatus);
+
+  if(units.length === 0){
+    container.innerHTML = '<div class="empty">아직 등록된 화장품이 없어요.<br>상단의 + 추가 버튼으로 첫 항목을 등록해보세요.</div>';
+    return;
+  }
+  if(filtered.length === 0){
+    container.innerHTML = '<div class="empty">해당 상태의 제품이 없어요.</div>';
+    return;
+  }
+
+  const byBrand = {};
+  filtered.forEach(u => { (byBrand[u.brand] = byBrand[u.brand] || []).push(u); });
+  const brandOrder = Object.keys(byBrand).sort((a,b) =>
+    byBrand[b].reduce((s,u)=>s+u.paid,0) - byBrand[a].reduce((s,u)=>s+u.paid,0)
+  );
+
+  container.innerHTML = brandOrder.map(brand => {
+    const bItems = byBrand[brand];
+    const brandTotal = bItems.reduce((s,u)=>s+u.paid,0);
+    const cls = colorFor(brand);
+
+    const byProduct = {};
+    bItems.forEach(u => { (byProduct[u.name] = byProduct[u.name] || []).push(u); });
+    const productOrder = Object.keys(byProduct).sort((a,b) =>
+      byProduct[b].reduce((s,u)=>s+u.paid,0) - byProduct[a].reduce((s,u)=>s+u.paid,0)
+    );
+
+    const groupsHtml = productOrder.map(name => {
+      const pItems = byProduct[name];
+      const productTotal = pItems.reduce((s,u)=>s+u.paid,0);
+
+      const byBatch = {};
+      pItems.forEach(u => {
+        const key = u.purchaseDate + '|' + u.paid + '|' + u.store;
+        (byBatch[key] = byBatch[key] || []).push(u);
+      });
+      const batches = Object.values(byBatch).sort((a,b) => b[0].purchaseDate.localeCompare(a[0].purchaseDate));
+
+      const batchHtml = batches.map(batchUnits => {
+        const first = batchUnits[0];
+        const batchId = first.id;
+        const d = discountPct(first.regular, first.paid);
+        const priceTxt = d > 0 ? `정상가 ${fmt(first.regular)} → ${fmt(first.paid)}` : `정상가 ${fmt(first.regular)}`;
+        const storeTxt = first.store ? ` · ${escapeHtml(first.store)}` : '';
+        const expiryTxt = `유효기간 ${dispDate(first.expiry)}`;
+
+        let breakdown = '';
+        if(filterStatus === 'all'){
+          const c = {unopened:0, inuse:0, used:0};
+          batchUnits.forEach(u => c[u.status]++);
+          const parts = [];
+          if(c.unopened) parts.push(`미개봉 ${c.unopened}`);
+          if(c.inuse) parts.push(`사용중 ${c.inuse}`);
+          if(c.used) parts.push(`다씀 ${c.used}`);
+          breakdown = ' (' + parts.join(' · ') + ')';
+        }
+
+        const unitRowsHtml = batchUnits.map((u,idx) => renderUnitRow(u, idx+1)).join('');
+
+        return `
+          <div class="batch">
+            <div class="batchHead">
+              <div class="bi" onclick="toggleBatch('${batchId}')">
+                <p class="bcount">${dispDate(first.purchaseDate)} 구매 · ${batchUnits.length}개${breakdown}</p>
+                <p class="bmeta">${priceTxt}${storeTxt} · ${expiryTxt}</p>
+              </div>
+              <div class="actions">
+                <button onclick="openCopyForm('${first.id}')">복사</button>
+                <span class="chev" onclick="toggleBatch('${batchId}')" id="chev_${batchId}">${expandedBatches.has(batchId) ? '▲' : '▼'}</span>
+              </div>
+            </div>
+            <div class="unitList" id="unitList_${batchId}" style="display:${expandedBatches.has(batchId) ? 'block':'none'};">
+              ${unitRowsHtml}
+            </div>
+          </div>`;
+      }).join('');
+
+      return `
+        <div class="productGroup">
+          <div class="productGroupHead">
+            <p class="gn">${escapeHtml(name)}<span class="gc">· 총 ${pItems.length}개 · ${fmt(productTotal)}</span></p>
+          </div>
+          ${batchHtml}
+        </div>`;
+    }).join('');
+
+    return `
+      <div class="brandCard">
+        <div class="brandHead ${cls}">
+          <div class="name">
+            <p class="n">${escapeHtml(brand)}</p>
+            <p class="c">${productOrder.length}종 제품</p>
+          </div>
+          <span class="total">${fmt(brandTotal)}</span>
+        </div>
+        <div class="productList">${groupsHtml}</div>
+      </div>`;
+  }).join('');
+
+  // 열려있는 낱개 상태변경 인라인 폼의 날짜입력 바인딩
+  if(openingUnitId) bindDateGroup('open_'+openingUnitId);
+  if(finishingUnitId) bindDateGroup('finish_'+finishingUnitId);
+}
+
+const expandedBatches = new Set();
+function toggleBatch(batchId){
+  if(expandedBatches.has(batchId)) expandedBatches.delete(batchId);
+  else expandedBatches.add(batchId);
+  render();
+}
+
+function renderUnitRow(u, idx){
+  const statusLabel = {unopened:'미개봉', inuse:'사용중', used:'다씀'}[u.status];
+  const isDone = u.status === 'used';
+
+  let actionHtml = '';
+  if(openingUnitId === u.id){
+    actionHtml = `<div class="inlineDateForm">${dateGroupHtml('open_'+u.id)}
+      <button class="ok" onclick="confirmOpen('${u.id}')">확인</button>
+      <button class="no" onclick="cancelOpen()">취소</button></div>`;
+  }else if(finishingUnitId === u.id){
+    actionHtml = `<div class="inlineDateForm">${dateGroupHtml('finish_'+u.id)}
+      <button class="ok" onclick="confirmFinish('${u.id}')">확인</button>
+      <button class="no" onclick="cancelFinish()">취소</button></div>`;
+  }
+
+  let statusBtn = '';
+  if(u.status === 'unopened') statusBtn = `<button class="miniBtn" onclick="startOpen('${u.id}')">사용 시작</button>`;
+  else if(u.status === 'inuse') statusBtn = `<button class="miniBtn" onclick="startFinish('${u.id}')">다 썼어요</button>`;
+
+  const dateInfo = u.status === 'used' ? `개봉 ${dispDate(u.openDate)} · 소진 ${dispDate(u.finishDate)}`
+    : u.status === 'inuse' ? `개봉 ${dispDate(u.openDate)}` : '';
+
+  return `
+    <div class="unit ${isDone ? 'done':''}">
+      <div class="ul">낱개 ${idx}${dateInfo ? ' · ' + dateInfo : ''}</div>
+      <div class="ur">
+        <span class="statusBadge ${u.status}">${statusLabel}</span>
+        ${statusBtn}
+        <button class="miniBtn" onclick="openEditForm('${u.id}')">수정</button>
+        <button class="miniBtn del" onclick="deleteUnit('${u.id}')">삭제</button>
+      </div>
+    </div>
+    ${actionHtml}`;
+}
+
+/* ===================== 스케줄 탭 ===================== */
+function pad2(n){ return String(n).padStart(2,'0'); }
+
+function navCal(delta){
+  calViewMonth += delta;
+  if(calViewMonth < 0){ calViewMonth = 11; calViewYear--; }
+  if(calViewMonth > 11){ calViewMonth = 0; calViewYear++; }
+  renderSchedule();
+}
+
+function renderSchedule(){
+  document.getElementById('calYm').textContent = `${calViewYear}년 ${calViewMonth+1}월`;
+
+  const firstDow = new Date(calViewYear, calViewMonth, 1).getDay();
+  const daysInMonth = new Date(calViewYear, calViewMonth+1, 0).getDate();
+  const dows = ['일','월','화','수','목','금','토'];
+
+  const eventDates = new Set(events.map(e => e.date));
+
+  let cells = dows.map(d => `<div class="dow">${d}</div>`).join('');
+  for(let i=0; i<firstDow; i++) cells += `<div class="calCell empty"></div>`;
+  for(let d=1; d<=daysInMonth; d++){
+    const iso = `${calViewYear}-${pad2(calViewMonth+1)}-${pad2(d)}`;
+    const isToday = iso === todayIso;
+    const isSelected = iso === selectedDate;
+    const hasEvent = eventDates.has(iso);
+    cells += `<div class="calCell ${isToday?'today':''} ${isSelected?'selected':''}" onclick="selectDay('${iso}')">
+      <span>${d}</span>${hasEvent ? '<span class="dot"></span>' : ''}
+    </div>`;
+  }
+  document.getElementById('calGrid').innerHTML = cells;
+
+  renderEventList();
+}
+
+function selectDay(iso){
+  selectedDate = selectedDate === iso ? null : iso;
+  renderSchedule();
+}
+
+function renderEventList(){
+  const titleEl = document.getElementById('eventListTitle');
+  const listEl = document.getElementById('eventList');
+
+  let list, title;
+  if(selectedDate){
+    list = events.filter(e => e.date === selectedDate).sort((a,b) => a.date.localeCompare(b.date));
+    title = `${dispDate(selectedDate)} 일정`;
+  }else{
+    const ymPrefix = `${calViewYear}-${pad2(calViewMonth+1)}`;
+    list = events.filter(e => e.date.startsWith(ymPrefix)).sort((a,b) => a.date.localeCompare(b.date));
+    title = '이달의 세일 일정';
+  }
+  titleEl.textContent = title;
+
+  if(list.length === 0){
+    listEl.innerHTML = '<div class="empty">등록된 세일 일정이 없어요.</div>';
+    return;
+  }
+  listEl.innerHTML = list.map(e => `
+    <div class="eventItem">
+      <div class="et">
+        <p class="d">${dispDate(e.date)}</p>
+        <p class="t">${escapeHtml(e.title)}</p>
+        ${e.memo ? `<p class="m">${escapeHtml(e.memo)}</p>` : ''}
+      </div>
+      <button class="miniBtn del" onclick="deleteEvent('${e.id}')">삭제</button>
+    </div>`).join('');
+}
+
+function openEventForm(){
+  editingEventId = null;
+  document.getElementById('f_ev_title').value = '';
+  document.getElementById('f_ev_memo').value = '';
+  setDateValue('f_ev', selectedDate || '');
+  document.getElementById('eventFormSection').classList.add('open');
+}
+function closeEventForm(){
+  document.getElementById('eventFormSection').classList.remove('open');
+  editingEventId = null;
+}
+function saveEvent(){
+  const title = document.getElementById('f_ev_title').value.trim();
+  const memo = document.getElementById('f_ev_memo').value.trim();
+  const dateRes = getDateValue('f_ev');
+  if(!title || dateRes.status !== 'ok'){
+    document.getElementById('eventErr').style.display = 'block';
+    return;
+  }
+  document.getElementById('eventErr').style.display = 'none';
+  events.push({ id: Date.now().toString(36) + Math.random().toString(36).slice(2,7), date: dateRes.value, title, memo });
+  persistEvents();
+  closeEventForm();
+  renderSchedule();
+}
+function deleteEvent(id){
+  events = events.filter(e => e.id !== id);
+  persistEvents();
+  renderSchedule();
+}
+
+loadAll();
+</script>
+</body>
+</html>
