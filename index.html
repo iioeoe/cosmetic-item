@@ -484,6 +484,30 @@ function onMainAddClick(){
   else if(activeTab === 'schedule') openEventForm();
 }
 
+/* ---- 좌우 스와이프로 탭 전환 (폰/태블릿) ---- */
+const TAB_ORDER = ['home','list','schedule'];
+let touchStartX = 0, touchStartY = 0, touchStartTime = 0;
+document.addEventListener('touchstart', e => {
+  if(e.touches.length !== 1) return;
+  touchStartX = e.touches[0].clientX;
+  touchStartY = e.touches[0].clientY;
+  touchStartTime = Date.now();
+}, {passive:true});
+document.addEventListener('touchend', e => {
+  if(!touchStartX) return;
+  const t = e.changedTouches[0];
+  const dx = t.clientX - touchStartX;
+  const dy = t.clientY - touchStartY;
+  const dt = Date.now() - touchStartTime;
+  touchStartX = 0;
+  if(dt > 600) return;                 // 너무 느리면 스와이프로 안 봄
+  if(Math.abs(dx) < 60) return;        // 이동 거리가 짧으면 무시
+  if(Math.abs(dx) < Math.abs(dy) * 1.3) return; // 세로 스크롤이면 무시
+  const idx = TAB_ORDER.indexOf(activeTab);
+  if(dx < 0 && idx < TAB_ORDER.length - 1) switchTab(TAB_ORDER[idx + 1]); // 왼쪽으로 밀기 → 다음 탭
+  else if(dx > 0 && idx > 0) switchTab(TAB_ORDER[idx - 1]);               // 오른쪽으로 밀기 → 이전 탭
+}, {passive:true});
+
 /* ===================== 화장품 폼 ===================== */
 function setFormMode(mode){
   formMode = mode;
@@ -727,6 +751,7 @@ function renderList(){
     const groupsHtml = productOrder.map(name => {
       const pItems = byProduct[name];
       const productTotal = pItems.reduce((s,u)=>s+u.paid,0);
+      const productUnopened = pItems.filter(u => u.status === 'unopened').length;
 
       const byBatch = {};
       pItems.forEach(u => {
@@ -739,7 +764,7 @@ function renderList(){
         const first = batchUnits[0];
         const batchId = first.id;
         const d = discountPct(first.regular, first.paid);
-        const priceTxt = d > 0 ? `정상가 ${fmt(first.regular)} → ${fmt(first.paid)}` : `정상가 ${fmt(first.regular)}`;
+        const priceTxt = d > 0 ? `정상가 ${fmt(first.regular)} → ${fmt(first.paid)}(${d}%)` : `정상가 ${fmt(first.regular)}`;
         const storeTxt = first.store ? ` · ${escapeHtml(first.store)}` : '';
         const expiryTxt = `유효기간 ${dispDate(first.expiry)}`;
 
@@ -777,7 +802,7 @@ function renderList(){
       return `
         <div class="productGroup">
           <div class="productGroupHead">
-            <p class="gn"><span class="hl">${escapeHtml(name)}</span><span class="gc">· 총 ${pItems.length}개 · ${fmt(productTotal)}</span></p>
+            <p class="gn"><span class="hl">${escapeHtml(name)}</span><span class="gc">· 총 ${pItems.length}개(미개봉 ${productUnopened})</span></p>
           </div>
           ${batchHtml}
         </div>`;
