@@ -1,0 +1,16 @@
+{
+  "name": "내 화장품 컬렉션",
+  "short_name": "화장품",
+  "start_url": "./index.html",
+  "display": "standalone",
+  "background_color": "#FBF7F2",
+  "theme_color": "#FBF7F2",
+  "icons": [
+    {
+      "src": "icon_cosmetic.png",
+      "sizes": "836x836",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}
