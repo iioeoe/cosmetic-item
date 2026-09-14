@@ -130,6 +130,19 @@
   .chip{border:1px solid var(--border); background:#fff; color:var(--text-sub); font-size:12.5px; font-weight:600; padding:6px 12px; border-radius:20px; cursor:pointer;}
   .chip.active{background:var(--text); color:#fff; border-color:var(--text);}
 
+  .setRow{border:1px dashed var(--border); border-radius:10px; padding:10px 10px 4px; margin-bottom:10px; background:rgba(255,255,255,0.4);}
+  .setRow .miniBtn{margin-bottom:8px;}
+
+  .setCard{border:1px dashed var(--purple-tx); border-radius:12px; padding:10px 12px; margin-bottom:12px; background:rgba(227,220,242,0.28);}
+  .setHead{display:flex; align-items:center; gap:8px;}
+  .setHead .si{flex:1; min-width:0; cursor:pointer;}
+  .setHead .si p.st{margin:0; font-size:12.5px; font-weight:600;}
+  .setHead .si p.sm{margin:3px 0 0; font-size:11px; color:var(--text-sub); line-height:1.5;}
+  .setBadge{font-size:9.5px; font-weight:700; color:var(--purple-tx); background:var(--purple-bg); padding:2px 6px; border-radius:6px; flex-shrink:0;}
+  .setCard .actions{display:flex; align-items:center; gap:10px; flex-shrink:0;}
+  .setCard .actions button{border:none; background:none; color:var(--text-mute); font-size:11px; cursor:pointer;}
+  .setItems{border-left:2px solid var(--purple-bg);}
+
   .brandCard{border-radius:14px; overflow:hidden; border:0.5px solid var(--border); margin-bottom:12px;}
   .brandHead{display:flex; align-items:center; gap:10px; padding:13px 14px;}
   .brandHead .name{flex:1; min-width:0;}
@@ -240,51 +253,104 @@
         <label>브랜드</label>
         <input type="text" id="f_brand" placeholder="예: 이니스프리">
       </div>
-      <div class="field">
-        <label>제품명</label>
-        <input type="text" id="f_name" placeholder="예: 그린티 세럼">
+
+      <div class="field" id="setToggleField">
+        <label style="display:flex; align-items:center; gap:8px; cursor:pointer; margin-bottom:0;">
+          <input type="checkbox" id="f_isSet" onchange="toggleSetMode()" style="width:auto;">
+          세트로 구매 (본품+리필 등 여러 품목을 한 번에)
+        </label>
       </div>
-      <div class="field">
-        <label>구매일</label>
-        <div class="dateGroup">
-          <input type="text" id="f_date_y" class="dy" maxlength="4" inputmode="numeric" placeholder="YYYY">
-          <span>.</span>
-          <input type="text" id="f_date_m" maxlength="2" inputmode="numeric" placeholder="MM">
-          <span>.</span>
-          <input type="text" id="f_date_d" maxlength="2" inputmode="numeric" placeholder="DD">
-        </div>
-      </div>
-      <div class="row2" id="qtyField">
+
+      <div id="singleModeFields">
         <div class="field">
-          <label>수량</label>
-          <input type="number" id="f_qty" min="1" value="1">
+          <label>제품명</label>
+          <input type="text" id="f_name" placeholder="예: 그린티 세럼">
         </div>
         <div class="field">
-          <label>정상가 (개당)</label>
-          <input type="number" id="f_regular" placeholder="32000">
+          <label>구매일</label>
+          <div class="dateGroup">
+            <input type="text" id="f_date_y" class="dy" maxlength="4" inputmode="numeric" placeholder="YYYY">
+            <span>.</span>
+            <input type="text" id="f_date_m" maxlength="2" inputmode="numeric" placeholder="MM">
+            <span>.</span>
+            <input type="text" id="f_date_d" maxlength="2" inputmode="numeric" placeholder="DD">
+          </div>
         </div>
-      </div>
-      <p class="err" id="qtyHint" style="display:none; color:var(--text-mute); font-size:11.5px; margin-top:-4px;"></p>
-      <div class="row2">
+        <div class="row2" id="qtyField">
+          <div class="field">
+            <label>수량</label>
+            <input type="number" id="f_qty" min="1" value="1">
+          </div>
+          <div class="field">
+            <label>정상가 (개당)</label>
+            <input type="number" id="f_regular" placeholder="32000">
+          </div>
+        </div>
+        <p class="err" id="qtyHint" style="display:none; color:var(--text-mute); font-size:11.5px; margin-top:-4px;"></p>
+        <div class="row2">
+          <div class="field">
+            <label>구매금액 (개당)</label>
+            <input type="number" id="f_paid" placeholder="25000">
+          </div>
+          <div class="field">
+            <label>구매처 (선택)</label>
+            <input type="text" id="f_store" placeholder="예: 올리브영">
+          </div>
+        </div>
         <div class="field">
-          <label>구매금액 (개당)</label>
-          <input type="number" id="f_paid" placeholder="25000">
+          <label>유효기간 (선택)</label>
+          <div class="dateGroup">
+            <input type="text" id="f_expiry_y" class="dy" maxlength="4" inputmode="numeric" placeholder="YYYY">
+            <span>.</span>
+            <input type="text" id="f_expiry_m" maxlength="2" inputmode="numeric" placeholder="MM">
+            <span>.</span>
+            <input type="text" id="f_expiry_d" maxlength="2" inputmode="numeric" placeholder="DD">
+          </div>
+        </div>
+      </div>
+
+      <div id="setModeFields" style="display:none;">
+        <div class="field">
+          <label>세트명</label>
+          <input type="text" id="f_setName" placeholder="예: 헤라 쿠션 세트">
         </div>
         <div class="field">
-          <label>구매처 (선택)</label>
-          <input type="text" id="f_store" placeholder="예: 올리브영">
+          <label>구매일 (세트 공통)</label>
+          <div class="dateGroup">
+            <input type="text" id="f_set_date_y" class="dy" maxlength="4" inputmode="numeric" placeholder="YYYY">
+            <span>.</span>
+            <input type="text" id="f_set_date_m" maxlength="2" inputmode="numeric" placeholder="MM">
+            <span>.</span>
+            <input type="text" id="f_set_date_d" maxlength="2" inputmode="numeric" placeholder="DD">
+          </div>
         </div>
-      </div>
-      <div class="field">
-        <label>유효기간 (선택)</label>
-        <div class="dateGroup">
-          <input type="text" id="f_expiry_y" class="dy" maxlength="4" inputmode="numeric" placeholder="YYYY">
-          <span>.</span>
-          <input type="text" id="f_expiry_m" maxlength="2" inputmode="numeric" placeholder="MM">
-          <span>.</span>
-          <input type="text" id="f_expiry_d" maxlength="2" inputmode="numeric" placeholder="DD">
+
+        <div id="setRows"></div>
+        <button type="button" class="btnGhost" style="margin:2px 0 14px; width:100%;" onclick="addSetRow()">+ 품목 추가</button>
+
+        <div class="row2">
+          <div class="field">
+            <label>세트 총 결제금액</label>
+            <input type="number" id="f_setTotalPaid" placeholder="30000">
+          </div>
+          <div class="field">
+            <label>구매처 (선택)</label>
+            <input type="text" id="f_setStore" placeholder="예: 올리브영">
+          </div>
         </div>
+        <div class="field">
+          <label>유효기간 (선택, 품목 공통)</label>
+          <div class="dateGroup">
+            <input type="text" id="f_set_expiry_y" class="dy" maxlength="4" inputmode="numeric" placeholder="YYYY">
+            <span>.</span>
+            <input type="text" id="f_set_expiry_m" maxlength="2" inputmode="numeric" placeholder="MM">
+            <span>.</span>
+            <input type="text" id="f_set_expiry_d" maxlength="2" inputmode="numeric" placeholder="DD">
+          </div>
+        </div>
+        <p class="err" id="setHint" style="display:block; color:var(--text-mute); font-size:11.5px; margin-top:-4px;">개별 정상가 비율대로 세트 총 결제금액을 자동으로 나눠서 품목별 구매금액을 계산해요.</p>
       </div>
+
       <p class="err" id="formErr">브랜드, 제품명, 구매일(년4자리), 정상가, 구매금액은 필수예요.</p>
       <div class="formBtns">
         <button class="btnPrimary" onclick="saveUnit()">저장</button>
@@ -348,6 +414,8 @@ let events = [];
 let activeTab = 'home';
 let formMode = 'add';       // 'add' | 'edit'
 let editingBatchIds = null; // 수정 중인 배치(묶음)에 속한 unit id 배열
+let setRowIds = [];
+let setRowCounter = 0;
 let filterStatus = 'all';   // all | unopened | inuse | used
 let openingUnitId = null;
 let finishingUnitId = null;
@@ -395,6 +463,8 @@ async function loadAll(){
   bindDateGroup('f_date');
   bindDateGroup('f_expiry');
   bindDateGroup('f_ev');
+  bindDateGroup('f_set_date');
+  bindDateGroup('f_set_expiry');
 
   render();
 }
@@ -539,6 +609,39 @@ document.addEventListener('touchend', e => {
 function setFormMode(mode){
   formMode = mode;
 }
+function toggleSetMode(){
+  const isSet = document.getElementById('f_isSet').checked;
+  document.getElementById('singleModeFields').style.display = isSet ? 'none' : 'block';
+  document.getElementById('setModeFields').style.display = isSet ? 'block' : 'none';
+}
+function addSetRow(){
+  const idx = setRowCounter++;
+  setRowIds.push(idx);
+  const div = document.createElement('div');
+  div.className = 'setRow';
+  div.id = 'setRow_' + idx;
+  div.innerHTML = `
+    <div class="field"><label>품목명</label><input type="text" id="setRowName_${idx}" placeholder="예: 본품"></div>
+    <div class="row2">
+      <div class="field"><label>정상가 (개당)</label><input type="number" id="setRowRegular_${idx}" placeholder="28000"></div>
+      <div class="field"><label>수량</label><input type="number" id="setRowQty_${idx}" min="1" value="1"></div>
+    </div>
+    <button type="button" class="miniBtn del" onclick="removeSetRow(${idx})">이 품목 삭제</button>`;
+  document.getElementById('setRows').appendChild(div);
+}
+function removeSetRow(idx){
+  const el = document.getElementById('setRow_' + idx);
+  if(el) el.remove();
+  setRowIds = setRowIds.filter(i => i !== idx);
+}
+function resetSetRows(){
+  document.getElementById('setRows').innerHTML = '';
+  setRowIds = [];
+  addSetRow();
+  addSetRow();
+  document.getElementById('setRowName_' + setRowIds[0]).placeholder = '예: 본품';
+  document.getElementById('setRowName_' + setRowIds[1]).placeholder = '예: 리필';
+}
 function clearForm(){
   document.getElementById('f_brand').value = '';
   document.getElementById('f_name').value = '';
@@ -550,11 +653,21 @@ function clearForm(){
   setDateValue('f_expiry', '');
   document.getElementById('formErr').style.display = 'none';
   document.getElementById('qtyHint').style.display = 'none';
+
+  document.getElementById('f_isSet').checked = false;
+  document.getElementById('f_setName').value = '';
+  document.getElementById('f_setTotalPaid').value = '';
+  document.getElementById('f_setStore').value = '';
+  setDateValue('f_set_date', '');
+  setDateValue('f_set_expiry', '');
+  resetSetRows();
+  toggleSetMode();
 }
 function openAddForm(){
   editingBatchIds = null;
   setFormMode('add');
   document.getElementById('formTitle').textContent = '화장품 추가';
+  document.getElementById('setToggleField').style.display = 'block';
   clearForm();
   document.getElementById('formSection').classList.add('open');
   window.scrollTo({top:0, behavior:'smooth'});
@@ -573,7 +686,10 @@ function openEditForm(repId){
   );
   editingBatchIds = group.map(u => u.id);
   setFormMode('edit');
+  document.getElementById('f_isSet').checked = false;
+  toggleSetMode();
   document.getElementById('formTitle').textContent = '구매 정보 수정';
+  document.getElementById('setToggleField').style.display = 'none';
   document.getElementById('f_brand').value = rep.brand;
   document.getElementById('f_name').value = rep.name;
   document.getElementById('f_regular').value = rep.regular;
@@ -593,7 +709,10 @@ function openCopyForm(id){
   if(!src) return;
   editingBatchIds = null;
   setFormMode('add');
+  document.getElementById('f_isSet').checked = false;
+  toggleSetMode();
   document.getElementById('formTitle').textContent = '재구매 기록 추가';
+  document.getElementById('setToggleField').style.display = 'none';
   document.getElementById('f_brand').value = src.brand;
   document.getElementById('f_name').value = src.name;
   document.getElementById('f_regular').value = src.regular;
@@ -614,6 +733,11 @@ function genId(){
   return Date.now().toString(36) + Math.random().toString(36).slice(2,7) + Math.floor(Math.random()*1000);
 }
 function saveUnit(){
+  if(formMode === 'add' && document.getElementById('f_isSet').checked){
+    saveSetUnits();
+    return;
+  }
+
   const brand = document.getElementById('f_brand').value.trim();
   const name = document.getElementById('f_name').value.trim();
   const store = document.getElementById('f_store').value.trim();
@@ -637,7 +761,8 @@ function saveUnit(){
     brand, name, store,
     purchaseDate: dateRes.value,
     regular, paid,
-    expiry: expiryRes.value
+    expiry: expiryRes.value,
+    setName: ''
   };
 
   if(formMode === 'edit' && editingBatchIds && editingBatchIds.length){
@@ -670,6 +795,57 @@ function saveUnit(){
       });
     }
   }
+  persistUnits();
+  closeForm();
+  render();
+}
+function saveSetUnits(){
+  const brand = document.getElementById('f_brand').value.trim();
+  const setName = document.getElementById('f_setName').value.trim();
+  const store = document.getElementById('f_setStore').value.trim();
+  const totalPaid = parseFloat(document.getElementById('f_setTotalPaid').value);
+  const dateRes = getDateValue('f_set_date');
+  const expiryRes = getDateValue('f_set_expiry');
+
+  const rows = setRowIds.map(idx => ({
+    name: document.getElementById('setRowName_'+idx).value.trim(),
+    regular: parseFloat(document.getElementById('setRowRegular_'+idx).value),
+    qty: Math.max(1, parseInt(document.getElementById('setRowQty_'+idx).value) || 1)
+  })).filter(r => r.name);
+
+  const valid = brand && setName && dateRes.status === 'ok' &&
+    !isNaN(totalPaid) && totalPaid >= 0 && expiryRes.status !== 'incomplete' &&
+    rows.length > 0 && rows.every(r => !isNaN(r.regular) && r.regular > 0);
+
+  if(!valid){
+    document.getElementById('formErr').style.display = 'block';
+    return;
+  }
+  document.getElementById('formErr').style.display = 'none';
+
+  const grandRegularSum = rows.reduce((s,r) => s + r.regular * r.qty, 0);
+  const planned = [];
+  rows.forEach(r => {
+    const rowShare = grandRegularSum > 0 ? totalPaid * (r.regular * r.qty) / grandRegularSum : 0;
+    const perUnitPaid = Math.round(rowShare / r.qty);
+    for(let i=0; i<r.qty; i++) planned.push({name: r.name, regular: r.regular, paid: perUnitPaid});
+  });
+  // 반올림 오차는 마지막 낱개에서 흡수해서 합계를 세트 총액과 정확히 맞춤
+  const sumPlanned = planned.reduce((s,p) => s + p.paid, 0);
+  if(planned.length) planned[planned.length - 1].paid += (totalPaid - sumPlanned);
+
+  planned.forEach(p => {
+    units.push({
+      id: genId(),
+      brand, name: p.name, store,
+      purchaseDate: dateRes.value,
+      regular: p.regular, paid: p.paid,
+      expiry: expiryRes.value,
+      setName,
+      status: 'unopened', openDate: '', finishDate: ''
+    });
+  });
+
   persistUnits();
   closeForm();
   render();
@@ -830,8 +1006,56 @@ function renderList(){
     const brandTotal = bItems.reduce((s,u)=>s+u.paid,0);
     const cls = colorFor(brand);
 
+    const setItems = bItems.filter(u => u.setName);
+    const normalItems = bItems.filter(u => !u.setName);
+
+    /* ---- 세트(본품+리필 등) 카드 ---- */
+    const bySet = {};
+    setItems.forEach(u => {
+      const key = u.setName + '|' + u.purchaseDate + '|' + u.store;
+      (bySet[key] = bySet[key] || []).push(u);
+    });
+    const setOrder = Object.keys(bySet).sort((a,b) =>
+      bySet[b][0].purchaseDate.localeCompare(bySet[a][0].purchaseDate)
+    );
+    const setCardsHtml = setOrder.map(key => {
+      const group = bySet[key];
+      const first = group[0];
+      const setId = first.id;
+      const remaining = group.filter(u => u.status !== 'used').length;
+      const storeTxt = first.store ? ` · ${escapeHtml(first.store)}` : '';
+      const expiryTxt = first.expiry ? ` · 유효기간 ${dispDate(first.expiry)}` : '';
+
+      const compRows = group.map(u => {
+        const d = discountPct(u.regular, u.paid);
+        const priceTxt = d > 0 ? `${fmt(u.regular)} → ${fmt(u.paid)}(${d}%)` : `${fmt(u.regular)}`;
+        return renderUnitRow(u, `${escapeHtml(u.name)} · ${priceTxt}`);
+      }).join('');
+
+      const idsCsv = group.map(u => u.id).join(',');
+
+      return `
+        <div class="setCard">
+          <div class="setHead">
+            <span class="setBadge">SET</span>
+            <div class="si" onclick="toggleBatch('${setId}')">
+              <p class="st"><span class="hl">${escapeHtml(first.setName)}</span></p>
+              <p class="sm">${dispDate(first.purchaseDate)} 구매 · 총 ${group.length}개(남음 ${remaining})${storeTxt}${expiryTxt}</p>
+            </div>
+            <div class="actions">
+              <button onclick="deleteSet('${idsCsv}')">삭제</button>
+              <span class="chev" onclick="toggleBatch('${setId}')" id="chev_${setId}">${expandedBatches.has(setId) ? '▲' : '▼'}</span>
+            </div>
+          </div>
+          <div class="unitList setItems" id="unitList_${setId}" style="display:${expandedBatches.has(setId) ? 'block':'none'};">
+            ${compRows}
+          </div>
+        </div>`;
+    }).join('');
+
+    /* ---- 일반 제품(브랜드 > 제품명 > 구매묶음) ---- */
     const byProduct = {};
-    bItems.forEach(u => { (byProduct[u.name] = byProduct[u.name] || []).push(u); });
+    normalItems.forEach(u => { (byProduct[u.name] = byProduct[u.name] || []).push(u); });
     const latestDate = name => byProduct[name].reduce((max,u) => u.purchaseDate > max ? u.purchaseDate : max, '');
     const productOrder = Object.keys(byProduct).sort((a,b) => latestDate(b).localeCompare(latestDate(a)));
 
@@ -901,11 +1125,11 @@ function renderList(){
         <div class="brandHead ${cls}">
           <div class="name">
             <p class="n">${escapeHtml(brand)}</p>
-            <p class="c">${productOrder.length}종 제품</p>
+            <p class="c">${productOrder.length + setOrder.length}종 제품</p>
           </div>
           <span class="total">${fmt(brandTotal)}</span>
         </div>
-        <div class="productList">${groupsHtml}</div>
+        <div class="productList">${setCardsHtml}${groupsHtml}</div>
       </div>`;
   }).join('');
 
