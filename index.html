@@ -133,16 +133,7 @@
 
   .setRow{border:1px dashed var(--border); border-radius:10px; padding:10px 10px 4px; margin-bottom:10px; background:rgba(255,255,255,0.4);}
   .setRow .miniBtn{margin-bottom:8px;}
-
-  .setCard{border:1px dashed var(--purple-tx); border-radius:12px; padding:10px 12px; margin-bottom:12px; background:rgba(227,220,242,0.28);}
-  .setHead{display:flex; align-items:center; gap:8px;}
-  .setHead .si{flex:1; min-width:0; cursor:pointer;}
-  .setHead .si p.st{margin:0; font-size:12.5px; font-weight:600;}
-  .setHead .si p.sm{margin:3px 0 0; font-size:11px; color:var(--text-sub); line-height:1.5;}
-  .setBadge{font-size:9.5px; font-weight:700; color:var(--purple-tx); background:var(--purple-bg); padding:2px 6px; border-radius:6px; flex-shrink:0;}
-  .setCard .actions{display:flex; align-items:center; gap:8px; flex-shrink:0; flex-wrap:wrap; justify-content:flex-end;}
-  .setCard .actions button{border:none; background:none; color:var(--text-mute); font-size:11px; cursor:pointer;}
-  .setItems{border-left:2px solid var(--purple-bg);}
+  .setBadge{font-size:9.5px; font-weight:700; color:var(--purple-tx); background:var(--purple-bg); padding:2px 6px; border-radius:6px; flex-shrink:0; display:inline-block;}
 
   .brandCard{border-radius:14px; overflow:hidden; border:0.5px solid var(--border); margin-bottom:12px;}
   .brandHead{display:flex; align-items:center; gap:10px; padding:13px 14px;}
@@ -269,6 +260,10 @@
           <input type="text" id="f_name" placeholder="예: 그린티 세럼">
         </div>
         <div class="field">
+          <label>옵션 (선택 — 예: 본품, 리필)</label>
+          <input type="text" id="f_option1" placeholder="예: 리필">
+        </div>
+        <div class="field">
           <label>구매일</label>
           <div class="dateGroup">
             <input type="text" id="f_date_y" class="dy" maxlength="4" inputmode="numeric" placeholder="YYYY">
@@ -313,8 +308,8 @@
 
       <div id="setModeFields" style="display:none;">
         <div class="field">
-          <label>세트명</label>
-          <input type="text" id="f_setName" placeholder="예: 헤라 쿠션 세트">
+          <label>세트명 (선택 — 화면에 SET 표시용)</label>
+          <input type="text" id="f_setName" placeholder="예: 허니바나나 쿠션 세트">
         </div>
         <div class="field">
           <label>구매일 (세트 공통)</label>
@@ -328,7 +323,7 @@
         </div>
 
         <div id="setRows"></div>
-        <button type="button" class="btnGhost" style="margin:2px 0 14px; width:100%;" onclick="addSetRow()">+ 품목 추가</button>
+        <button type="button" class="btnGhost" style="margin:2px 0 14px; width:100%;" onclick="addSetRow()">+ 옵션 추가</button>
 
         <div class="row2">
           <div class="field">
@@ -341,7 +336,7 @@
           </div>
         </div>
         <div class="field">
-          <label>유효기간 (선택, 품목 공통)</label>
+          <label>유효기간 (선택, 옵션 공통)</label>
           <div class="dateGroup">
             <input type="text" id="f_set_expiry_y" class="dy" maxlength="4" inputmode="numeric" placeholder="YYYY">
             <span>.</span>
@@ -350,7 +345,7 @@
             <input type="text" id="f_set_expiry_d" maxlength="2" inputmode="numeric" placeholder="DD">
           </div>
         </div>
-        <p class="err" id="setHint" style="display:block; color:var(--text-mute); font-size:11.5px; margin-top:-4px;">개별 정상가 비율대로 세트 총 결제금액을 자동으로 나눠서 품목별 구매금액을 계산해요.</p>
+        <p class="err" id="setHint" style="display:block; color:var(--text-mute); font-size:11.5px; margin-top:-4px;">옵션별 정상가 비율대로 세트 총 결제금액을 자동으로 나눠서 옵션별 구매금액을 계산해요. 같은 제품명끼리는 리스트 탭에서 한 곳에 모여 보여요.</p>
       </div>
 
       <p class="err" id="formErr">브랜드, 제품명, 구매일(년4자리), 정상가, 구매금액은 필수예요.</p>
@@ -416,7 +411,6 @@ let events = [];
 let activeTab = 'home';
 let formMode = 'add';       // 'add' | 'edit'
 let editingBatchIds = null; // 수정 중인 배치(묶음)에 속한 unit id 배열
-let editingSetIds = null;   // 수정 중인 세트에 속한 unit id 배열
 let setRowIds = [];
 let setRowCounter = 0;
 let filterStatus = 'all';   // all | unopened | inuse | used
@@ -513,10 +507,6 @@ function escapeHtml(s){
   return d.innerHTML;
 }
 function dispDate(iso){ return iso ? iso.replace(/-/g,'.') : '-'; }
-/* "허니바나나 쿠션_21호(리필)" → "허니바나나 쿠션_21호" 처럼 끝의 괄호 표기를 떼어 기본 제품명으로 묶을 때 사용 */
-function baseProductName(name){
-  return name.replace(/\s*\([^)]*\)\s*$/, '').trim() || name;
-}
 
 /* ---- 날짜 3분할 입력 (연4자리 → 자동 월 이동) ---- */
 function bindDateGroup(prefix){
@@ -628,12 +618,15 @@ function addSetRow(){
   div.className = 'setRow';
   div.id = 'setRow_' + idx;
   div.innerHTML = `
-    <div class="field"><label>품목명</label><input type="text" id="setRowName_${idx}" placeholder="예: 본품"></div>
+    <div class="row2">
+      <div class="field"><label>제품명</label><input type="text" id="setRowProduct_${idx}" placeholder="예: 허니바나나 쿠션_21호"></div>
+      <div class="field"><label>옵션</label><input type="text" id="setRowOption_${idx}" placeholder="예: 본품"></div>
+    </div>
     <div class="row2">
       <div class="field"><label>정상가 (개당)</label><input type="number" id="setRowRegular_${idx}" placeholder="28000"></div>
       <div class="field"><label>수량</label><input type="number" id="setRowQty_${idx}" min="1" value="1"></div>
     </div>
-    <button type="button" class="miniBtn del" onclick="removeSetRow(${idx})">이 품목 삭제</button>`;
+    <button type="button" class="miniBtn del" onclick="removeSetRow(${idx})">이 옵션 삭제</button>`;
   document.getElementById('setRows').appendChild(div);
 }
 function removeSetRow(idx){
@@ -641,17 +634,23 @@ function removeSetRow(idx){
   if(el) el.remove();
   setRowIds = setRowIds.filter(i => i !== idx);
 }
-function resetSetRows(){
+function resetSetRows(lastProductName){
   document.getElementById('setRows').innerHTML = '';
   setRowIds = [];
   addSetRow();
   addSetRow();
-  document.getElementById('setRowName_' + setRowIds[0]).placeholder = '예: 본품';
-  document.getElementById('setRowName_' + setRowIds[1]).placeholder = '예: 리필';
+  const [id0, id1] = setRowIds;
+  document.getElementById('setRowOption_' + id0).placeholder = '예: 본품';
+  document.getElementById('setRowOption_' + id1).placeholder = '예: 리필';
+  if(lastProductName){
+    document.getElementById('setRowProduct_' + id0).value = lastProductName;
+    document.getElementById('setRowProduct_' + id1).value = lastProductName;
+  }
 }
 function clearForm(){
   document.getElementById('f_brand').value = '';
   document.getElementById('f_name').value = '';
+  document.getElementById('f_option1').value = '';
   document.getElementById('f_store').value = '';
   document.getElementById('f_qty').value = 1;
   document.getElementById('f_regular').value = '';
@@ -672,7 +671,6 @@ function clearForm(){
 }
 function openAddForm(){
   editingBatchIds = null;
-  editingSetIds = null;
   setFormMode('add');
   document.getElementById('formTitle').textContent = '화장품 추가';
   document.getElementById('setToggleField').style.display = 'block';
@@ -683,18 +681,16 @@ function openAddForm(){
 function closeForm(){
   document.getElementById('formSection').classList.remove('open');
   editingBatchIds = null;
-  editingSetIds = null;
   clearForm();
 }
 function openEditForm(repId){
   const rep = units.find(x => x.id === repId);
   if(!rep) return;
   const group = units.filter(u =>
-    u.brand === rep.brand && u.name === rep.name &&
+    u.brand === rep.brand && u.name === rep.name && (u.option1||'') === (rep.option1||'') &&
     u.purchaseDate === rep.purchaseDate && u.paid === rep.paid && u.store === rep.store
   );
   editingBatchIds = group.map(u => u.id);
-  editingSetIds = null;
   setFormMode('edit');
   document.getElementById('f_isSet').checked = false;
   toggleSetMode();
@@ -702,6 +698,7 @@ function openEditForm(repId){
   document.getElementById('setToggleField').style.display = 'none';
   document.getElementById('f_brand').value = rep.brand;
   document.getElementById('f_name').value = rep.name;
+  document.getElementById('f_option1').value = rep.option1 || '';
   document.getElementById('f_regular').value = rep.regular;
   document.getElementById('f_paid').value = rep.paid;
   document.getElementById('f_store').value = rep.store || '';
@@ -718,7 +715,6 @@ function openCopyForm(id){
   const src = units.find(x => x.id === id);
   if(!src) return;
   editingBatchIds = null;
-  editingSetIds = null;
   setFormMode('add');
   document.getElementById('f_isSet').checked = false;
   toggleSetMode();
@@ -726,80 +722,13 @@ function openCopyForm(id){
   document.getElementById('setToggleField').style.display = 'none';
   document.getElementById('f_brand').value = src.brand;
   document.getElementById('f_name').value = src.name;
+  document.getElementById('f_option1').value = src.option1 || '';
   document.getElementById('f_regular').value = src.regular;
   document.getElementById('f_paid').value = '';
   document.getElementById('f_store').value = src.store || '';
   document.getElementById('f_qty').value = 1;
   setDateValue('f_date', '');
   setDateValue('f_expiry', '');
-  document.getElementById('formSection').classList.add('open');
-  window.scrollTo({top:0, behavior:'smooth'});
-}
-/* ---- 세트 묶음 자체를 찾는 헬퍼 ---- */
-function findSetGroup(repId){
-  const rep = units.find(x => x.id === repId);
-  if(!rep) return null;
-  const group = units.filter(u =>
-    u.brand === rep.brand && u.setName === rep.setName &&
-    u.purchaseDate === rep.purchaseDate && u.store === rep.store
-  );
-  return {rep, group};
-}
-function fillSetRowsFromGroup(group){
-  document.getElementById('setRows').innerHTML = '';
-  setRowIds = [];
-  const byName = {};
-  group.forEach(u => { (byName[u.name] = byName[u.name] || []).push(u); });
-  Object.keys(byName).forEach(name => {
-    const arr = byName[name];
-    addSetRow();
-    const idx = setRowIds[setRowIds.length - 1];
-    document.getElementById('setRowName_'+idx).value = name;
-    document.getElementById('setRowRegular_'+idx).value = arr[0].regular;
-    document.getElementById('setRowQty_'+idx).value = arr.length;
-  });
-}
-function openEditSetForm(repId){
-  const found = findSetGroup(repId);
-  if(!found) return;
-  const {rep, group} = found;
-  editingSetIds = group.map(u => u.id);
-  editingBatchIds = null;
-  setFormMode('editSet');
-  document.getElementById('setToggleField').style.display = 'none';
-  document.getElementById('singleModeFields').style.display = 'none';
-  document.getElementById('setModeFields').style.display = 'block';
-  document.getElementById('formTitle').textContent = '세트 구매 정보 수정';
-  document.getElementById('f_brand').value = rep.brand;
-  document.getElementById('f_setName').value = rep.setName;
-  document.getElementById('f_setStore').value = rep.store || '';
-  document.getElementById('f_setTotalPaid').value = group.reduce((s,u) => s + u.paid, 0);
-  setDateValue('f_set_date', rep.purchaseDate);
-  setDateValue('f_set_expiry', rep.expiry || '');
-  fillSetRowsFromGroup(group);
-  document.getElementById('formErr').style.display = 'none';
-  document.getElementById('formSection').classList.add('open');
-  window.scrollTo({top:0, behavior:'smooth'});
-}
-function openCopySetForm(repId){
-  const found = findSetGroup(repId);
-  if(!found) return;
-  const {rep, group} = found;
-  editingSetIds = null;
-  editingBatchIds = null;
-  setFormMode('add');
-  document.getElementById('f_isSet').checked = true;
-  toggleSetMode();
-  document.getElementById('setToggleField').style.display = 'none';
-  document.getElementById('formTitle').textContent = '세트 재구매 기록 추가';
-  document.getElementById('f_brand').value = rep.brand;
-  document.getElementById('f_setName').value = rep.setName;
-  document.getElementById('f_setStore').value = rep.store || '';
-  document.getElementById('f_setTotalPaid').value = '';
-  setDateValue('f_set_date', '');
-  setDateValue('f_set_expiry', '');
-  fillSetRowsFromGroup(group);
-  document.getElementById('formErr').style.display = 'none';
   document.getElementById('formSection').classList.add('open');
   window.scrollTo({top:0, behavior:'smooth'});
 }
@@ -812,13 +741,14 @@ function genId(){
   return Date.now().toString(36) + Math.random().toString(36).slice(2,7) + Math.floor(Math.random()*1000);
 }
 function saveUnit(){
-  if(formMode === 'editSet' || (formMode === 'add' && document.getElementById('f_isSet').checked)){
+  if(formMode === 'add' && document.getElementById('f_isSet').checked){
     saveSetUnits();
     return;
   }
 
   const brand = document.getElementById('f_brand').value.trim();
   const name = document.getElementById('f_name').value.trim();
+  const option1 = document.getElementById('f_option1').value.trim();
   const store = document.getElementById('f_store').value.trim();
   const paid = parseFloat(document.getElementById('f_paid').value);
   const regular = parseFloat(document.getElementById('f_regular').value);
@@ -837,7 +767,7 @@ function saveUnit(){
   document.getElementById('formErr').style.display = 'none';
 
   const base = {
-    brand, name, store,
+    brand, name, option1, store,
     purchaseDate: dateRes.value,
     regular, paid,
     expiry: expiryRes.value,
@@ -887,12 +817,13 @@ function saveSetUnits(){
   const expiryRes = getDateValue('f_set_expiry');
 
   const rows = setRowIds.map(idx => ({
-    name: document.getElementById('setRowName_'+idx).value.trim(),
+    name: document.getElementById('setRowProduct_'+idx).value.trim(),
+    option1: document.getElementById('setRowOption_'+idx).value.trim(),
     regular: parseFloat(document.getElementById('setRowRegular_'+idx).value),
     qty: Math.max(1, parseInt(document.getElementById('setRowQty_'+idx).value) || 1)
   })).filter(r => r.name);
 
-  const valid = brand && setName && dateRes.status === 'ok' &&
+  const valid = brand && dateRes.status === 'ok' &&
     !isNaN(totalPaid) && totalPaid >= 0 && expiryRes.status !== 'incomplete' &&
     rows.length > 0 && rows.every(r => !isNaN(r.regular) && r.regular > 0);
 
@@ -903,83 +834,27 @@ function saveSetUnits(){
   document.getElementById('formErr').style.display = 'none';
 
   const grandRegularSum = rows.reduce((s,r) => s + r.regular * r.qty, 0);
+  const planned = [];
+  rows.forEach(r => {
+    const rowShare = grandRegularSum > 0 ? totalPaid * (r.regular * r.qty) / grandRegularSum : 0;
+    const perUnitPaid = Math.round(rowShare / r.qty);
+    for(let i=0; i<r.qty; i++) planned.push({name: r.name, option1: r.option1, regular: r.regular, paid: perUnitPaid});
+  });
+  // 반올림 오차는 마지막 낱개에서 흡수해서 합계를 세트 총액과 정확히 맞춤
+  const sumPlanned = planned.reduce((s,p) => s + p.paid, 0);
+  if(planned.length) planned[planned.length - 1].paid += (totalPaid - sumPlanned);
 
-  if(editingSetIds && editingSetIds.length){
-    const existing = editingSetIds.map(id => units.find(u => u.id === id)).filter(Boolean);
-    const existingByName = {};
-    existing.forEach(u => { (existingByName[u.name] = existingByName[u.name] || []).push(u); });
-
-    const finalGroups = []; // {row, arr}
-    rows.forEach(row => {
-      let arr = (existingByName[row.name] || []).slice();
-      const diff = row.qty - arr.length;
-      if(diff > 0){
-        for(let i=0; i<diff; i++){
-          const nu = { id: genId(), brand, name: row.name, store, purchaseDate: dateRes.value,
-            regular: row.regular, paid: 0, expiry: expiryRes.value, setName,
-            status: 'unopened', openDate: '', finishDate: '' };
-          units.push(nu);
-          arr.push(nu);
-        }
-      }else if(diff < 0){
-        const removeCount = -diff;
-        const pool = [
-          ...arr.filter(u => u.status === 'unopened'),
-          ...arr.filter(u => u.status === 'inuse'),
-          ...arr.filter(u => u.status === 'used')
-        ];
-        const toRemove = new Set(pool.slice(0, removeCount).map(u => u.id));
-        arr = arr.filter(u => !toRemove.has(u.id));
-        units = units.filter(u => !toRemove.has(u.id));
-      }
-      arr.forEach(u => {
-        u.brand = brand; u.setName = setName; u.purchaseDate = dateRes.value;
-        u.store = store; u.expiry = expiryRes.value; u.regular = row.regular; u.name = row.name;
-      });
-      finalGroups.push({row, arr});
+  planned.forEach(p => {
+    units.push({
+      id: genId(),
+      brand, name: p.name, option1: p.option1, store,
+      purchaseDate: dateRes.value,
+      regular: p.regular, paid: p.paid,
+      expiry: expiryRes.value,
+      setName,
+      status: 'unopened', openDate: '', finishDate: ''
     });
-
-    // 폼에서 지워진 품목(행)은 기존 낱개 전체 삭제
-    Object.keys(existingByName).forEach(name => {
-      if(!rows.some(r => r.name === name)){
-        const dropIds = new Set(existingByName[name].map(u => u.id));
-        units = units.filter(u => !dropIds.has(u.id));
-      }
-    });
-
-    // 결제금액 비율 재분배
-    const flat = [];
-    finalGroups.forEach(({row, arr}) => {
-      const rowShare = grandRegularSum > 0 ? totalPaid * (row.regular * row.qty) / grandRegularSum : 0;
-      const perUnitPaid = Math.round(rowShare / row.qty);
-      arr.forEach(u => { u.paid = perUnitPaid; flat.push(u); });
-    });
-    const sumFlat = flat.reduce((s,u) => s + u.paid, 0);
-    if(flat.length) flat[flat.length - 1].paid += (totalPaid - sumFlat);
-
-  }else{
-    const planned = [];
-    rows.forEach(r => {
-      const rowShare = grandRegularSum > 0 ? totalPaid * (r.regular * r.qty) / grandRegularSum : 0;
-      const perUnitPaid = Math.round(rowShare / r.qty);
-      for(let i=0; i<r.qty; i++) planned.push({name: r.name, regular: r.regular, paid: perUnitPaid});
-    });
-    // 반올림 오차는 마지막 낱개에서 흡수해서 합계를 세트 총액과 정확히 맞춤
-    const sumPlanned = planned.reduce((s,p) => s + p.paid, 0);
-    if(planned.length) planned[planned.length - 1].paid += (totalPaid - sumPlanned);
-
-    planned.forEach(p => {
-      units.push({
-        id: genId(),
-        brand, name: p.name, store,
-        purchaseDate: dateRes.value,
-        regular: p.regular, paid: p.paid,
-        expiry: expiryRes.value,
-        setName,
-        status: 'unopened', openDate: '', finishDate: ''
-      });
-    });
-  }
+  });
 
   persistUnits();
   closeForm();
@@ -1068,7 +943,7 @@ function renderHomeUnopened(){
     const items = byBrand[brand];
     const total = items.length;
     const byProduct = {};
-    items.forEach(u => { const key = baseProductName(u.name); byProduct[key] = (byProduct[key] || 0) + 1; });
+    items.forEach(u => { const key = u.name; byProduct[key] = (byProduct[key] || 0) + 1; });
     const products = Object.keys(byProduct)
       .map(name => ({name, count: byProduct[name]}))
       .sort((a,b) => b.count - a.count);
@@ -1141,69 +1016,19 @@ function renderList(){
     const brandTotal = bItems.reduce((s,u)=>s+u.paid,0);
     const cls = colorFor(brand);
 
-    const setItems = bItems.filter(u => u.setName);
-    const normalItems = bItems.filter(u => !u.setName);
-
-    /* ---- 세트(본품+리필 등) 카드 ---- */
-    const bySet = {};
-    setItems.forEach(u => {
-      const key = u.setName + '|' + u.purchaseDate + '|' + u.store;
-      (bySet[key] = bySet[key] || []).push(u);
-    });
-    const setOrder = Object.keys(bySet).sort((a,b) =>
-      bySet[b][0].purchaseDate.localeCompare(bySet[a][0].purchaseDate)
-    );
-    const setCardsHtml = setOrder.map(key => {
-      const group = bySet[key];
-      const first = group[0];
-      const setId = first.id;
-      const remaining = group.filter(u => u.status !== 'used').length;
-      const storeTxt = first.store ? ` · ${escapeHtml(first.store)}` : '';
-      const expiryTxt = first.expiry ? ` · 유효기간 ${dispDate(first.expiry)}` : '';
-
-      const compRows = group.map(u => {
-        const d = discountPct(u.regular, u.paid);
-        const priceTxt = d > 0 ? `${fmt(u.regular)} → ${fmt(u.paid)}(${d}%)` : `${fmt(u.regular)}`;
-        return renderUnitRow(u, `${escapeHtml(u.name)} · ${priceTxt}`, true);
-      }).join('');
-
-      const idsCsv = group.map(u => u.id).join(',');
-
-      return `
-        <div class="setCard">
-          <div class="setHead">
-            <span class="setBadge">SET</span>
-            <div class="si" onclick="toggleBatch('${setId}')">
-              <p class="st"><span class="hl">${escapeHtml(first.setName)}</span></p>
-              <p class="sm">${dispDate(first.purchaseDate)} 구매 · 총 ${group.length}개(남음 ${remaining})${storeTxt}${expiryTxt}</p>
-            </div>
-            <div class="actions">
-              <button onclick="openEditSetForm('${setId}')">수정</button>
-              <button onclick="openCopySetForm('${setId}')">복사</button>
-              <button onclick="deleteSet('${idsCsv}')">삭제</button>
-              <span class="chev" onclick="toggleBatch('${setId}')" id="chev_${setId}">${expandedBatches.has(setId) ? '▲' : '▼'}</span>
-            </div>
-          </div>
-          <div class="unitList setItems" id="unitList_${setId}" style="display:${expandedBatches.has(setId) ? 'block':'none'};">
-            ${compRows}
-          </div>
-        </div>`;
-    }).join('');
-
-    /* ---- 일반 제품(브랜드 > 제품명 > 구매묶음) ---- */
+    /* ---- 브랜드 > 제품명 > 구매묶음(날짜+구매가+구매처+옵션) ---- */
     const byProduct = {};
-    normalItems.forEach(u => { (byProduct[u.name] = byProduct[u.name] || []).push(u); });
+    bItems.forEach(u => { (byProduct[u.name] = byProduct[u.name] || []).push(u); });
     const latestDate = name => byProduct[name].reduce((max,u) => u.purchaseDate > max ? u.purchaseDate : max, '');
     const productOrder = Object.keys(byProduct).sort((a,b) => latestDate(b).localeCompare(latestDate(a)));
 
     const groupsHtml = productOrder.map(name => {
       const pItems = byProduct[name];
-      const productTotal = pItems.reduce((s,u)=>s+u.paid,0);
       const productUnopened = pItems.filter(u => u.status === 'unopened').length;
 
       const byBatch = {};
       pItems.forEach(u => {
-        const key = u.purchaseDate + '|' + u.paid + '|' + u.store;
+        const key = u.purchaseDate + '|' + u.paid + '|' + u.store + '|' + (u.option1 || '');
         (byBatch[key] = byBatch[key] || []).push(u);
       });
       const batches = Object.values(byBatch).sort((a,b) => b[0].purchaseDate.localeCompare(a[0].purchaseDate));
@@ -1213,6 +1038,8 @@ function renderList(){
         const batchId = first.id;
         const d = discountPct(first.regular, first.paid);
         const priceTxt = d > 0 ? `정상가 ${fmt(first.regular)} → ${fmt(first.paid)}(${d}%)` : `정상가 ${fmt(first.regular)}`;
+        const optTxt = first.option1 ? `${escapeHtml(first.option1)} · ` : '';
+        const setTag = first.setName ? `<span class="setBadge">SET</span> ` : '';
         const storeTxt = first.store ? ` · ${escapeHtml(first.store)}` : '';
         const expiryTxt = `유효기간 ${dispDate(first.expiry)}`;
 
@@ -1233,8 +1060,8 @@ function renderList(){
           <div class="batch">
             <div class="batchHead">
               <div class="bi" onclick="toggleBatch('${batchId}')">
-                <p class="bcount">${dispDate(first.purchaseDate)} 구매 · ${batchUnits.length}개${breakdown}</p>
-                <p class="bmeta">${priceTxt}${storeTxt} · ${expiryTxt}</p>
+                <p class="bcount">${setTag}${dispDate(first.purchaseDate)} 구매 · ${batchUnits.length}개${breakdown}</p>
+                <p class="bmeta">${optTxt}${priceTxt}${storeTxt} · ${expiryTxt}</p>
               </div>
               <div class="actions">
                 <button onclick="openEditForm('${first.id}')">수정</button>
@@ -1262,11 +1089,11 @@ function renderList(){
         <div class="brandHead ${cls}">
           <div class="name">
             <p class="n">${escapeHtml(brand)}</p>
-            <p class="c">${productOrder.length + setOrder.length}종 제품</p>
+            <p class="c">${productOrder.length}종 제품</p>
           </div>
           <span class="total">${fmt(brandTotal)}</span>
         </div>
-        <div class="productList">${setCardsHtml}${groupsHtml}</div>
+        <div class="productList">${groupsHtml}</div>
       </div>`;
   }).join('');
 
@@ -1318,13 +1145,6 @@ function renderUnitRow(u, label, showCopy){
     </div>
     ${actionHtml}`;
 }
-function deleteSet(ids){
-  const idSet = new Set(ids.split(','));
-  units = units.filter(u => !idSet.has(u.id));
-  persistUnits();
-  render();
-}
-
 /* ===================== 스케줄 탭 ===================== */
 function pad2(n){ return String(n).padStart(2,'0'); }
 
