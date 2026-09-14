@@ -264,10 +264,7 @@
           <input type="number" id="f_regular" placeholder="32000">
         </div>
       </div>
-      <div class="field" id="regularOnlyField" style="display:none;">
-        <label>정상가</label>
-        <input type="number" id="f_regular_edit" placeholder="32000">
-      </div>
+      <p class="err" id="qtyHint" style="display:none; color:var(--text-mute); font-size:11.5px; margin-top:-4px;"></p>
       <div class="row2">
         <div class="field">
           <label>구매금액 (개당)</label>
@@ -350,7 +347,7 @@ let units = [];
 let events = [];
 let activeTab = 'home';
 let formMode = 'add';       // 'add' | 'edit'
-let editingId = null;
+let editingBatchIds = null; // 수정 중인 배치(묶음)에 속한 unit id 배열
 let filterStatus = 'all';   // all | unopened | inuse | used
 let openingUnitId = null;
 let finishingUnitId = null;
@@ -541,8 +538,6 @@ document.addEventListener('touchend', e => {
 /* ===================== 화장품 폼 ===================== */
 function setFormMode(mode){
   formMode = mode;
-  document.getElementById('qtyField').style.display = mode === 'edit' ? 'none' : 'grid';
-  document.getElementById('regularOnlyField').style.display = mode === 'edit' ? 'block' : 'none';
 }
 function clearForm(){
   document.getElementById('f_brand').value = '';
@@ -550,14 +545,14 @@ function clearForm(){
   document.getElementById('f_store').value = '';
   document.getElementById('f_qty').value = 1;
   document.getElementById('f_regular').value = '';
-  document.getElementById('f_regular_edit').value = '';
   document.getElementById('f_paid').value = '';
   setDateValue('f_date', '');
   setDateValue('f_expiry', '');
   document.getElementById('formErr').style.display = 'none';
+  document.getElementById('qtyHint').style.display = 'none';
 }
 function openAddForm(){
-  editingId = null;
+  editingBatchIds = null;
   setFormMode('add');
   document.getElementById('formTitle').textContent = '화장품 추가';
   clearForm();
@@ -566,29 +561,37 @@ function openAddForm(){
 }
 function closeForm(){
   document.getElementById('formSection').classList.remove('open');
-  editingId = null;
+  editingBatchIds = null;
   clearForm();
 }
-function openEditForm(id){
-  const u = units.find(x => x.id === id);
-  if(!u) return;
-  editingId = id;
+function openEditForm(repId){
+  const rep = units.find(x => x.id === repId);
+  if(!rep) return;
+  const group = units.filter(u =>
+    u.brand === rep.brand && u.name === rep.name &&
+    u.purchaseDate === rep.purchaseDate && u.paid === rep.paid && u.store === rep.store
+  );
+  editingBatchIds = group.map(u => u.id);
   setFormMode('edit');
-  document.getElementById('formTitle').textContent = '화장품 수정';
-  document.getElementById('f_brand').value = u.brand;
-  document.getElementById('f_name').value = u.name;
-  document.getElementById('f_regular_edit').value = u.regular;
-  document.getElementById('f_paid').value = u.paid;
-  document.getElementById('f_store').value = u.store || '';
-  setDateValue('f_date', u.purchaseDate);
-  setDateValue('f_expiry', u.expiry || '');
+  document.getElementById('formTitle').textContent = '구매 정보 수정';
+  document.getElementById('f_brand').value = rep.brand;
+  document.getElementById('f_name').value = rep.name;
+  document.getElementById('f_regular').value = rep.regular;
+  document.getElementById('f_paid').value = rep.paid;
+  document.getElementById('f_store').value = rep.store || '';
+  document.getElementById('f_qty').value = group.length;
+  setDateValue('f_date', rep.purchaseDate);
+  setDateValue('f_expiry', rep.expiry || '');
+  const hint = document.getElementById('qtyHint');
+  hint.textContent = '수량을 늘리면 미개봉으로 추가되고, 줄이면 미개봉 → 사용중 → 다씀 순으로 제거돼요.';
+  hint.style.display = 'block';
   document.getElementById('formSection').classList.add('open');
   window.scrollTo({top:0, behavior:'smooth'});
 }
 function openCopyForm(id){
   const src = units.find(x => x.id === id);
   if(!src) return;
-  editingId = null;
+  editingBatchIds = null;
   setFormMode('add');
   document.getElementById('formTitle').textContent = '재구매 기록 추가';
   document.getElementById('f_brand').value = src.brand;
@@ -607,22 +610,18 @@ function deleteUnit(id){
   persistUnits();
   render();
 }
+function genId(){
+  return Date.now().toString(36) + Math.random().toString(36).slice(2,7) + Math.floor(Math.random()*1000);
+}
 function saveUnit(){
   const brand = document.getElementById('f_brand').value.trim();
   const name = document.getElementById('f_name').value.trim();
   const store = document.getElementById('f_store').value.trim();
   const paid = parseFloat(document.getElementById('f_paid').value);
+  const regular = parseFloat(document.getElementById('f_regular').value);
+  const qty = Math.max(1, parseInt(document.getElementById('f_qty').value) || 1);
   const dateRes = getDateValue('f_date');
   const expiryRes = getDateValue('f_expiry');
-
-  let regular, qty;
-  if(formMode === 'edit'){
-    regular = parseFloat(document.getElementById('f_regular_edit').value);
-    qty = 1;
-  }else{
-    regular = parseFloat(document.getElementById('f_regular').value);
-    qty = parseInt(document.getElementById('f_qty').value) || 1;
-  }
 
   const valid = brand && name && dateRes.status === 'ok' &&
     !isNaN(regular) && regular > 0 && !isNaN(paid) && paid >= 0 &&
@@ -641,13 +640,29 @@ function saveUnit(){
     expiry: expiryRes.value
   };
 
-  if(formMode === 'edit' && editingId){
-    const u = units.find(x => x.id === editingId);
-    Object.assign(u, base);
+  if(formMode === 'edit' && editingBatchIds && editingBatchIds.length){
+    const group = editingBatchIds.map(id => units.find(u => u.id === id)).filter(Boolean);
+    group.forEach(u => Object.assign(u, base));
+
+    const diff = qty - group.length;
+    if(diff > 0){
+      for(let i=0; i<diff; i++){
+        units.push({ id: genId(), ...base, status:'unopened', openDate:'', finishDate:'' });
+      }
+    }else if(diff < 0){
+      const removeCount = -diff;
+      const pool = [
+        ...group.filter(u => u.status === 'unopened'),
+        ...group.filter(u => u.status === 'inuse'),
+        ...group.filter(u => u.status === 'used')
+      ];
+      const toRemove = new Set(pool.slice(0, removeCount).map(u => u.id));
+      units = units.filter(u => !toRemove.has(u.id));
+    }
   }else{
     for(let i=0; i<qty; i++){
       units.push({
-        id: Date.now().toString(36) + Math.random().toString(36).slice(2,7) + i,
+        id: genId(),
         ...base,
         status: 'unopened',
         openDate: '',
@@ -817,9 +832,8 @@ function renderList(){
 
     const byProduct = {};
     bItems.forEach(u => { (byProduct[u.name] = byProduct[u.name] || []).push(u); });
-    const productOrder = Object.keys(byProduct).sort((a,b) =>
-      byProduct[b].reduce((s,u)=>s+u.paid,0) - byProduct[a].reduce((s,u)=>s+u.paid,0)
-    );
+    const latestDate = name => byProduct[name].reduce((max,u) => u.purchaseDate > max ? u.purchaseDate : max, '');
+    const productOrder = Object.keys(byProduct).sort((a,b) => latestDate(b).localeCompare(latestDate(a)));
 
     const groupsHtml = productOrder.map(name => {
       const pItems = byProduct[name];
@@ -852,7 +866,7 @@ function renderList(){
           breakdown = ' (' + parts.join(' · ') + ')';
         }
 
-        const unitRowsHtml = batchUnits.map((u,idx) => renderUnitRow(u, idx+1)).join('');
+        const unitRowsHtml = batchUnits.map((u,idx) => renderUnitRow(u, '낱개 '+(idx+1))).join('');
 
         return `
           <div class="batch">
@@ -862,6 +876,7 @@ function renderList(){
                 <p class="bmeta">${priceTxt}${storeTxt} · ${expiryTxt}</p>
               </div>
               <div class="actions">
+                <button onclick="openEditForm('${first.id}')">수정</button>
                 <button onclick="openCopyForm('${first.id}')">복사</button>
                 <span class="chev" onclick="toggleBatch('${batchId}')" id="chev_${batchId}">${expandedBatches.has(batchId) ? '▲' : '▼'}</span>
               </div>
@@ -906,7 +921,7 @@ function toggleBatch(batchId){
   render();
 }
 
-function renderUnitRow(u, idx){
+function renderUnitRow(u, label){
   const statusLabel = {unopened:'미개봉', inuse:'사용중', used:'다씀'}[u.status];
   const isDone = u.status === 'used';
 
@@ -930,15 +945,20 @@ function renderUnitRow(u, idx){
 
   return `
     <div class="unit ${isDone ? 'done':''}">
-      <div class="ul">낱개 ${idx}${dateInfo ? ' · ' + dateInfo : ''}</div>
+      <div class="ul">${label}${dateInfo ? ' · ' + dateInfo : ''}</div>
       <div class="ur">
         <span class="statusBadge ${u.status}">${statusLabel}</span>
         ${statusBtn}
-        <button class="miniBtn" onclick="openEditForm('${u.id}')">수정</button>
         <button class="miniBtn del" onclick="deleteUnit('${u.id}')">삭제</button>
       </div>
     </div>
     ${actionHtml}`;
+}
+function deleteSet(ids){
+  const idSet = new Set(ids.split(','));
+  units = units.filter(u => !idSet.has(u.id));
+  persistUnits();
+  render();
 }
 
 /* ===================== 스케줄 탭 ===================== */
