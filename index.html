@@ -513,6 +513,10 @@ function escapeHtml(s){
   return d.innerHTML;
 }
 function dispDate(iso){ return iso ? iso.replace(/-/g,'.') : '-'; }
+/* "허니바나나 쿠션_21호(리필)" → "허니바나나 쿠션_21호" 처럼 끝의 괄호 표기를 떼어 기본 제품명으로 묶을 때 사용 */
+function baseProductName(name){
+  return name.replace(/\s*\([^)]*\)\s*$/, '').trim() || name;
+}
 
 /* ---- 날짜 3분할 입력 (연4자리 → 자동 월 이동) ---- */
 function bindDateGroup(prefix){
@@ -1064,7 +1068,7 @@ function renderHomeUnopened(){
     const items = byBrand[brand];
     const total = items.length;
     const byProduct = {};
-    items.forEach(u => { byProduct[u.name] = (byProduct[u.name] || 0) + 1; });
+    items.forEach(u => { const key = baseProductName(u.name); byProduct[key] = (byProduct[key] || 0) + 1; });
     const products = Object.keys(byProduct)
       .map(name => ({name, count: byProduct[name]}))
       .sort((a,b) => b.count - a.count);
@@ -1160,7 +1164,7 @@ function renderList(){
       const compRows = group.map(u => {
         const d = discountPct(u.regular, u.paid);
         const priceTxt = d > 0 ? `${fmt(u.regular)} → ${fmt(u.paid)}(${d}%)` : `${fmt(u.regular)}`;
-        return renderUnitRow(u, `${escapeHtml(u.name)} · ${priceTxt}`);
+        return renderUnitRow(u, `${escapeHtml(u.name)} · ${priceTxt}`, true);
       }).join('');
 
       const idsCsv = group.map(u => u.id).join(',');
@@ -1278,7 +1282,7 @@ function toggleBatch(batchId){
   render();
 }
 
-function renderUnitRow(u, label){
+function renderUnitRow(u, label, showCopy){
   const statusLabel = {unopened:'미개봉', inuse:'사용중', used:'다씀'}[u.status];
   const isDone = u.status === 'used';
 
@@ -1297,6 +1301,8 @@ function renderUnitRow(u, label){
   if(u.status === 'unopened') statusBtn = `<button class="miniBtn" onclick="startOpen('${u.id}')">사용 시작</button>`;
   else if(u.status === 'inuse') statusBtn = `<button class="miniBtn" onclick="startFinish('${u.id}')">다 썼어요</button>`;
 
+  const copyBtn = showCopy ? `<button class="miniBtn" onclick="openCopyForm('${u.id}')">복사</button>` : '';
+
   const dateInfo = u.status === 'used' ? `개봉 ${dispDate(u.openDate)} · 소진 ${dispDate(u.finishDate)}`
     : u.status === 'inuse' ? `개봉 ${dispDate(u.openDate)}` : '';
 
@@ -1306,6 +1312,7 @@ function renderUnitRow(u, label){
       <div class="ur">
         <span class="statusBadge ${u.status}">${statusLabel}</span>
         ${statusBtn}
+        ${copyBtn}
         <button class="miniBtn del" onclick="deleteUnit('${u.id}')">삭제</button>
       </div>
     </div>
