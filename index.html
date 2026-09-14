@@ -57,13 +57,20 @@
 
   .stats{display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-bottom:22px;}
   @media(min-width:560px){ .stats{grid-template-columns:repeat(4,1fr);} }
-  .stat{border-radius:14px; padding:14px;}
-  .stat .lbl{font-size:11.5px; opacity:.75; margin:0 0 6px;}
-  .stat .val{font-size:18px; font-weight:600; margin:0;}
-  .stat.c1{background:var(--coral-bg); color:var(--coral-tx);}
-  .stat.c2{background:var(--blue-bg); color:var(--blue-tx);}
-  .stat.c3{background:var(--purple-bg); color:var(--purple-tx);}
-  .stat.c4{background:var(--pink-bg); color:var(--pink-tx);}
+  .stat{
+    background:#fff; border:1px solid var(--border); border-radius:16px;
+    padding:16px 14px 14px; display:flex; flex-direction:column; gap:12px; min-height:128px;
+  }
+  .stat .icoWrap{width:30px; height:30px; border-radius:9px; display:flex; align-items:center; justify-content:center; flex-shrink:0;}
+  .stat .icoWrap svg{width:16px; height:16px;}
+  .stat .icoWrap.txt{font-size:14px; font-weight:800;}
+  .stat.c1 .icoWrap{background:var(--coral-bg); color:var(--coral-tx);}
+  .stat.c2 .icoWrap{background:var(--blue-bg); color:var(--blue-tx);}
+  .stat.c3 .icoWrap{background:var(--purple-bg); color:var(--purple-tx);}
+  .stat.c4 .icoWrap{background:var(--pink-bg); color:var(--pink-tx);}
+  .stat .lbl{font-size:12px; color:var(--text-sub); margin:0;}
+  .stat .val{font-size:19px; font-weight:700; color:var(--text); margin:2px 0 0;}
+  .stat .delta{font-size:10.5px; color:var(--text-mute); margin-top:auto; padding-top:6px;}
 
   .sectionTitle{font-size:13.5px; font-weight:600; margin:0 0 10px; color:var(--text);}
   .empty{
@@ -71,12 +78,22 @@
     border:1px dashed var(--border); border-radius:14px;
   }
 
-  .unopenedGrid{display:grid; grid-template-columns:1fr 1fr; gap:10px;}
-  @media(min-width:560px){.unopenedGrid{grid-template-columns:repeat(3,1fr);}}
-  .uCard{border-radius:12px; padding:12px; display:flex; flex-direction:column; gap:10px; min-height:76px;}
-  .uCard .b{font-size:11px; opacity:.8; margin:0;}
-  .uCard .n{font-size:13px; font-weight:600; line-height:1.35; margin:0;}
-  .uCard .cnt{font-size:12px; font-weight:700; margin:0;}
+  .donutCard{background:#fff; border:1px solid var(--border); border-radius:14px; padding:14px; margin-bottom:12px;}
+  .donutCard .head{margin-bottom:12px;}
+  .donutRow{display:flex; align-items:center; gap:16px;}
+  .donutWrap{position:relative; width:92px; height:92px; flex-shrink:0;}
+  .donutWrap .ring{width:100%; height:100%; border-radius:50%;}
+  .donutWrap .hole{
+    position:absolute; inset:21%; background:#fff; border-radius:50%;
+    display:flex; flex-direction:column; align-items:center; justify-content:center;
+  }
+  .donutWrap .hole .num{font-size:16px; font-weight:700; color:var(--text); line-height:1;}
+  .donutWrap .hole .lab{font-size:9px; color:var(--text-mute); margin-top:2px;}
+  .legend{flex:1; min-width:0; display:flex; flex-direction:column; gap:7px;}
+  .legend .item{display:flex; align-items:center; gap:6px; font-size:11.5px; color:var(--text-sub);}
+  .legend .item .pn{flex:1; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;}
+  .legend .dot{width:8px; height:8px; border-radius:50%; flex-shrink:0;}
+  .legend .item b{color:var(--text); font-weight:600; flex-shrink:0; white-space:nowrap;}
 
   #formSection, #eventFormSection{
     display:none; background:rgba(255,255,255,0.78); border:0.5px solid var(--border);
@@ -344,6 +361,11 @@ let selectedDate = null;
 const brandColorMap = {};
 const colorClasses = ['bh1','bh2','bh3','bh4','bh5'];
 const statColorClasses = ['c1','c2','c3','c4'];
+const DONUT_PALETTE = ['#8FBCE6','#F3A6A6','#A8D8A0','#F0C77E','#C9B6E4','#E6A6C7','#B3B3B3'];
+
+const ICO_BAG = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M6 7h12l1 13H5L6 7z"/><path d="M9 7a3 3 0 0 1 6 0"/></svg>';
+const ICO_TAG = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12.6 2.6a2 2 0 0 0-1.42-.6H4a2 2 0 0 0-2 2v7.17a2 2 0 0 0 .6 1.41l9 9a2 2 0 0 0 2.82 0l7-7a2 2 0 0 0 0-2.82z"/><circle cx="7.5" cy="7.5" r="1.5"/></svg>';
+const ICO_PERCENT = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><line x1="19" y1="5" x2="5" y2="19"/><circle cx="6.5" cy="6.5" r="2.5"/><circle cx="17.5" cy="17.5" r="2.5"/></svg>';
 
 const today = new Date();
 const todayIso = today.toISOString().slice(0,10);
@@ -678,15 +700,31 @@ function renderStats(){
     if(d > 0){ discSum += d; discCount++; }
   });
   const avgDisc = discCount ? Math.round(discSum / discCount) : 0;
+
+  const monthPrefix = todayIso.slice(0,7);
+  const monthUnits = units.filter(u => u.purchaseDate && u.purchaseDate.startsWith(monthPrefix));
+  const monthCount = monthUnits.length;
+  const monthSpent = monthUnits.reduce((s,u) => s + u.paid, 0);
+  const salePct = units.length ? Math.round(discCount / units.length * 100) : 0;
+  const mostRecent = units.reduce((max,u) => (!max || u.purchaseDate > max) ? u.purchaseDate : max, '');
+
   const stats = [
-    {lbl:'총 지출', val: fmt(totalSpent)},
-    {lbl:'보유 제품 수', val: units.length + '개'},
-    {lbl:'세일로 절약한 금액', val: fmt(totalSaved)},
-    {lbl:'평균 할인율', val: avgDisc + '%'}
+    {cls:'c1', ico:'₩', txt:true, lbl:'총 지출', val: fmt(totalSpent),
+      delta: monthCount ? `이번 달 +${fmt(monthSpent)}` : '이번 달 구매 없음'},
+    {cls:'c2', ico:ICO_BAG, lbl:'보유 제품 수', val: units.length + '개',
+      delta: monthCount ? `이번 달 +${monthCount}개` : '이번 달 추가 없음'},
+    {cls:'c3', ico:ICO_TAG, lbl:'세일로 절약한 금액', val: fmt(totalSaved),
+      delta: `세일 구매 비중 ${salePct}%`},
+    {cls:'c4', ico:ICO_PERCENT, lbl:'평균 할인율', val: avgDisc + '%',
+      delta: mostRecent ? `최근 구매일 ${dispDate(mostRecent)}` : '구매 기록 없음'}
   ];
-  document.getElementById('stats').innerHTML = stats.map((s,i) =>
-    `<div class="stat ${statColorClasses[i]}"><p class="lbl">${s.lbl}</p><p class="val">${s.val}</p></div>`
-  ).join('');
+  document.getElementById('stats').innerHTML = stats.map(s => `
+    <div class="stat ${s.cls}">
+      <div class="icoWrap ${s.txt?'txt':''}">${s.ico}</div>
+      <p class="lbl">${s.lbl}</p>
+      <p class="val">${s.val}</p>
+      <p class="delta">${s.delta}</p>
+    </div>`).join('');
 }
 
 function renderHomeUnopened(){
@@ -696,19 +734,46 @@ function renderHomeUnopened(){
     el.innerHTML = '<div class="empty">현재 미개봉 상태인 제품이 없어요.</div>';
     return;
   }
-  const byKey = {};
-  unopened.forEach(u => {
-    const key = u.brand + '|' + u.name;
-    if(!byKey[key]) byKey[key] = {brand:u.brand, name:u.name, count:0};
-    byKey[key].count++;
-  });
-  const list = Object.values(byKey).sort((a,b) => b.count - a.count);
-  el.innerHTML = `<div class="unopenedGrid">${list.map(item => `
-    <div class="uCard ${colorFor(item.brand)}">
-      <p class="b">${escapeHtml(item.brand)}</p>
-      <p class="n"><span class="hl">${escapeHtml(item.name)}</span></p>
-      <p class="cnt">미개봉 ${item.count}개</p>
-    </div>`).join('')}</div>`;
+  const byBrand = {};
+  unopened.forEach(u => { (byBrand[u.brand] = byBrand[u.brand] || []).push(u); });
+  const brandOrder = Object.keys(byBrand).sort((a,b) => byBrand[b].length - byBrand[a].length);
+
+  el.innerHTML = brandOrder.map(brand => {
+    const items = byBrand[brand];
+    const total = items.length;
+    const byProduct = {};
+    items.forEach(u => { byProduct[u.name] = (byProduct[u.name] || 0) + 1; });
+    const products = Object.keys(byProduct)
+      .map(name => ({name, count: byProduct[name]}))
+      .sort((a,b) => b.count - a.count);
+
+    let cum = 0;
+    const gradStr = products.map((p,i) => {
+      const pct = p.count / total * 100;
+      const color = DONUT_PALETTE[i % DONUT_PALETTE.length];
+      const part = `${color} ${cum.toFixed(2)}% ${(cum+pct).toFixed(2)}%`;
+      cum += pct;
+      return part;
+    }).join(', ');
+
+    const legendHtml = products.map((p,i) => {
+      const pct = Math.round(p.count / total * 100);
+      const color = DONUT_PALETTE[i % DONUT_PALETTE.length];
+      return `<div class="item"><span class="dot" style="background:${color}"></span><span class="pn">${escapeHtml(p.name)}</span><b>${p.count}개 (${pct}%)</b></div>`;
+    }).join('');
+
+    return `
+      <div class="donutCard">
+        <div class="head"><span class="hl">${escapeHtml(brand)}</span></div>
+        <div class="donutRow">
+          <div class="donutWrap">
+            <div class="ring" style="background:conic-gradient(${gradStr});"></div>
+            <div class="hole"><span class="num">${total}</span><span class="lab">미개봉</span></div>
+          </div>
+          <div class="legend">${legendHtml}</div>
+        </div>
+      </div>`;
+  }).join('');
 }
 
 function renderFilterRow(){
