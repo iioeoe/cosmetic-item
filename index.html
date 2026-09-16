@@ -279,8 +279,8 @@
             <input type="number" id="f_regular" placeholder="32000">
           </div>
           <div class="field">
-            <label>구매금액 (개당)</label>
-            <input type="number" id="f_paid" placeholder="25000">
+            <label>구매금액 (총 결제금액)</label>
+            <input type="number" id="f_paid" placeholder="예: 2개 사서 50000이면 50000">
           </div>
         </div>
         <div class="row2" id="qtyField">
@@ -700,13 +700,13 @@ function openEditForm(repId){
   document.getElementById('f_name').value = rep.name;
   document.getElementById('f_option1').value = rep.option1 || '';
   document.getElementById('f_regular').value = rep.regular;
-  document.getElementById('f_paid').value = rep.paid;
+  document.getElementById('f_paid').value = group.reduce((s,u) => s + u.paid, 0);
   document.getElementById('f_store').value = rep.store || '';
   document.getElementById('f_qty').value = group.length;
   setDateValue('f_date', rep.purchaseDate);
   setDateValue('f_expiry', rep.expiry || '');
   const hint = document.getElementById('qtyHint');
-  hint.textContent = '수량을 늘리면 미개봉으로 추가되고, 줄이면 미개봉 → 사용중 → 다씀 순으로 제거돼요.';
+  hint.textContent = '수량을 늘리면 미개봉으로 추가되고, 줄이면 미개봉 → 사용중 → 다씀 순으로 제거돼요. 구매금액은 총액을 수량만큼 다시 나눠요.';
   hint.style.display = 'block';
   document.getElementById('formSection').classList.add('open');
   window.scrollTo({top:0, behavior:'smooth'});
@@ -750,14 +750,14 @@ function saveUnit(){
   const name = document.getElementById('f_name').value.trim();
   const option1 = document.getElementById('f_option1').value.trim();
   const store = document.getElementById('f_store').value.trim();
-  const paid = parseFloat(document.getElementById('f_paid').value);
+  const totalPaid = parseFloat(document.getElementById('f_paid').value);
   const regular = parseFloat(document.getElementById('f_regular').value);
   const qty = Math.max(1, parseInt(document.getElementById('f_qty').value) || 1);
   const dateRes = getDateValue('f_date');
   const expiryRes = getDateValue('f_expiry');
 
   const valid = brand && name && dateRes.status === 'ok' &&
-    !isNaN(regular) && regular > 0 && !isNaN(paid) && paid >= 0 &&
+    !isNaN(regular) && regular > 0 && !isNaN(totalPaid) && totalPaid >= 0 &&
     expiryRes.status !== 'incomplete';
 
   if(!valid){
@@ -766,22 +766,27 @@ function saveUnit(){
   }
   document.getElementById('formErr').style.display = 'none';
 
+  const perUnitPaid = Math.round(totalPaid / qty);
+
   const base = {
     brand, name, option1, store,
     purchaseDate: dateRes.value,
-    regular, paid,
+    regular, paid: perUnitPaid,
     expiry: expiryRes.value,
     setName: ''
   };
 
+  let finalGroup;
   if(formMode === 'edit' && editingBatchIds && editingBatchIds.length){
-    const group = editingBatchIds.map(id => units.find(u => u.id === id)).filter(Boolean);
+    let group = editingBatchIds.map(id => units.find(u => u.id === id)).filter(Boolean);
     group.forEach(u => Object.assign(u, base));
 
     const diff = qty - group.length;
     if(diff > 0){
       for(let i=0; i<diff; i++){
-        units.push({ id: genId(), ...base, status:'unopened', openDate:'', finishDate:'' });
+        const nu = { id: genId(), ...base, status:'unopened', openDate:'', finishDate:'' };
+        units.push(nu);
+        group.push(nu);
       }
     }else if(diff < 0){
       const removeCount = -diff;
@@ -792,18 +797,22 @@ function saveUnit(){
       ];
       const toRemove = new Set(pool.slice(0, removeCount).map(u => u.id));
       units = units.filter(u => !toRemove.has(u.id));
+      group = group.filter(u => !toRemove.has(u.id));
     }
+    finalGroup = group;
   }else{
+    finalGroup = [];
     for(let i=0; i<qty; i++){
-      units.push({
-        id: genId(),
-        ...base,
-        status: 'unopened',
-        openDate: '',
-        finishDate: ''
-      });
+      const nu = { id: genId(), ...base, status: 'unopened', openDate: '', finishDate: '' };
+      units.push(nu);
+      finalGroup.push(nu);
     }
   }
+
+  // 반올림 오차는 마지막 낱개에서 흡수해서 합계를 입력한 총 결제금액과 정확히 맞춤
+  const sumPaid = finalGroup.reduce((s,u) => s + u.paid, 0);
+  if(finalGroup.length) finalGroup[finalGroup.length - 1].paid += (totalPaid - sumPaid);
+
   persistUnits();
   closeForm();
   render();
