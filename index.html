@@ -7,16 +7,17 @@
 <link rel="icon" href="icon_cosmetic.png">
 <link rel="apple-touch-icon" href="icon_cosmetic.png">
 <link rel="manifest" href="manifest.json">
-<meta name="theme-color" content="#FBF7F2">
+<meta name="theme-color" content="#FFFFFC">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="apple-mobile-web-app-title" content="화장품 컬렉션">
 <style>
   :root{
-    --bg:#FBF7F2;
+    --bg:#FFFFFC;          /* 페이지 배경 */
+    --cream:#FFF2D4;       /* 테두리 · 선택된 탭 · 버튼 박스 공통 색 */
     --card:#FFFFFF;
-    --border:#ECE6DD;
+    --border:var(--cream);
     --text:#3D332C;
     --text-sub:#8A7F72;
     --text-mute:#B3A99C;
@@ -49,9 +50,9 @@
   #mainAddBtn:active{opacity:.85;}
   #mainAddBtn.hidden{display:none;}
 
-  .tabbar{display:flex; gap:4px; background:var(--plain-bg); border-radius:14px; padding:4px; margin-bottom:20px;}
+  .tabbar{display:flex; gap:4px; background:var(--bg); border-radius:14px; padding:4px; margin-bottom:20px;}
   .tabbar button{flex:1; border:none; background:none; padding:9px 0; border-radius:11px; font-size:13px; font-weight:600; color:var(--text-sub); cursor:pointer;}
-  .tabbar button.active{background:#fff; color:var(--text); box-shadow:0 1px 3px rgba(0,0,0,0.06);}
+  .tabbar button.active{background:var(--cream); color:var(--text); box-shadow:0 1px 3px rgba(0,0,0,0.06);}
 
   .tabpanel{display:none;}
   .tabpanel.active{display:block;}
@@ -133,7 +134,8 @@
 
   .setRow{border:1px dashed var(--border); border-radius:10px; padding:10px 10px 4px; margin-bottom:10px; background:rgba(255,255,255,0.4);}
   .setRow .miniBtn{margin-bottom:8px;}
-  #f_isSet{accent-color:var(--purple-tx);}
+  #f_isSet{accent-color:var(--purple-bg);}  /* SET 배지 배경색과 동일 */
+  .btnAddOption{background:var(--cream); border:none; border-radius:9px; padding:10px; font-size:13.5px; font-weight:600; cursor:pointer;}  /* 저장 버튼과 같은 모양 */
   .setBadge{font-size:9.5px; font-weight:700; color:var(--purple-tx); background:var(--purple-bg); padding:2px 6px; border-radius:6px; flex-shrink:0; display:inline-block;}
 
   .brandCard{border-radius:14px; overflow:hidden; border:0.5px solid var(--border); margin-bottom:12px;}
@@ -195,7 +197,7 @@
   .inlineDateForm .no{background:var(--plain-bg); color:var(--text-sub);}
 
   .calHead{display:flex; align-items:center; justify-content:space-between; margin-bottom:14px;}
-  .calHead button{border:none; background:var(--plain-bg); width:30px; height:30px; border-radius:8px; font-size:14px; cursor:pointer; color:var(--text-sub);}
+  .calHead button{border:none; background:var(--cream); width:30px; height:30px; border-radius:8px; font-size:14px; cursor:pointer; color:var(--text-sub);}
   .calHead .ym{font-size:15px; font-weight:600;}
   .calGrid{display:grid; grid-template-columns:repeat(7,1fr); gap:4px; margin-bottom:18px;}
   .calGrid .dow{text-align:center; font-size:11px; color:var(--text-mute); padding-bottom:4px;}
@@ -320,7 +322,7 @@
         </div>
 
         <div id="setRows"></div>
-        <button type="button" class="btnGhost" style="margin:2px 0 14px; width:100%;" onclick="addSetRow()">+ 옵션 추가</button>
+        <button type="button" class="btnGhost btnAddOption" style="margin:2px 0 14px; width:100%;" onclick="addSetRow()">+ 옵션 추가</button>
 
         <div class="row2">
           <div class="field">
