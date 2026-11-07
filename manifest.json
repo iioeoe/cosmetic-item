@@ -3,8 +3,8 @@
   "short_name": "화장품",
   "start_url": "./index.html",
   "display": "standalone",
-  "background_color": "#FBF7F2",
-  "theme_color": "#FBF7F2",
+  "background_color": "#FFFFFC",
+  "theme_color": "#FFFFFC",
   "icons": [
     {
       "src": "icon_cosmetic.png",
