@@ -7,22 +7,25 @@
 <link rel="icon" href="icon_cosmetic.png">
 <link rel="apple-touch-icon" href="icon_cosmetic.png">
 <link rel="manifest" href="manifest.json">
-<meta name="theme-color" content="#FFFFFC">
+<meta name="theme-color" content="#FEFCF9">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="apple-mobile-web-app-title" content="화장품 컬렉션">
 <style>
   :root{
-    --bg: #FEFCF9   /* #FFFFFC*/ ;          /* 페이지 배경 */
+    --bg:#FEFCF9;          /* 페이지 배경 */
     --card-bg:rgba(255,255,255,0.58);      /* 홈 탭 요약·도넛 카드 배경 */
     --card-border:rgba(255,255,255,0.65);  /* 홈 탭 요약·도넛 카드 테두리 */
     --card-blur:blur(10px);                /* 홈 탭 요약·도넛 카드 블러 */
     --tab-circle:46px;     /* 하단 메뉴 아이콘 원 크기 */
     --tab-icon:22px;       /* 메뉴 아이콘 크기 */
-    --cream: #BCD1E3 /* #FFF2D4*/  ;       /* 테두리 · 선택된 탭 · 버튼 박스 공통 색 */
+    --cream:#BCD1E3;       /* 선택된 탭 · 버튼 박스 공통 색 */   /* 예전 노랑: #FFF2D4 */
+    --add-btn-bg:#3D332C;  /* 리스트 탭 '+ 추가' · 스케줄 탭 '+ 일정' 버튼 배경 */
+    --add-btn-text:#FFFFFF; /* 위 버튼 글자색 */
+    --green-bg:#DCEFDC; --green-tx:#2E6B3E;  /* 보유 제품 수 아이콘 */
     --card:#FFFFFF;
-    --border:var(--cream);
+    --border:#FFF2D4;      /* 테두리 색 (선택 색과 분리) */
     --text:#3D332C;
     --text-sub:#8A7F72;
     --text-mute:#B3A99C;
@@ -49,7 +52,7 @@
   header h1{font-size:19px; font-weight:600; margin:0;}
   header p{font-size:12px; color:var(--text-sub); margin:2px 0 0;}
   #mainAddBtn{
-    background:var(--text); color:#fff; border:none; border-radius:20px;
+    background:var(--add-btn-bg); color:var(--add-btn-text); border:none; border-radius:20px;
     padding:9px 16px; font-size:13px; font-weight:600; cursor:pointer;
   }
   #mainAddBtn:active{opacity:.85;}
@@ -76,7 +79,7 @@
   .stat .icoWrap svg{width:16px; height:16px;}
   .stat .icoWrap.txt{font-size:14px; font-weight:800;}
   .stat.c1 .icoWrap{background:var(--coral-bg); color:var(--coral-tx);}
-  .stat.c2 .icoWrap{background:var(--blue-bg); color:var(--blue-tx);}
+  .stat.c2 .icoWrap{background:var(--green-bg); color:var(--green-tx);}
   .stat.c3 .icoWrap{background:var(--purple-bg); color:var(--purple-tx);}
   .stat.c4 .icoWrap{background:var(--pink-bg); color:var(--pink-tx);}
   .stat .lbl{font-size:12px; color:var(--text-sub); margin:0;}
