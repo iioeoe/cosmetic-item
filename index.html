@@ -151,7 +151,15 @@
   .setBadge{font-size:9.5px; font-weight:700; color:var(--purple-tx); background:var(--purple-bg); padding:2px 6px; border-radius:6px; flex-shrink:0; display:inline-block;}
 
   .brandCard{border-radius:14px; overflow:hidden; border:0.5px solid var(--border); margin-bottom:12px;}
-  .brandHead{display:flex; align-items:center; gap:10px; padding:13px 14px;}
+  .brandHead{display:flex; align-items:center; gap:10px; padding:13px 14px; cursor:pointer;}
+  .brandHead .chevB{font-size:11px; opacity:.6; margin-left:2px;}
+  .orderBtns{display:flex; gap:6px;}
+  .orderBtn{border:none; background:rgba(255,255,255,0.6); color:inherit; border-radius:8px; padding:5px 11px; font-size:13px; cursor:pointer;}
+  .orderBtn:disabled{opacity:.35; cursor:default;}
+  .listHead{display:flex; align-items:center; justify-content:space-between; margin-bottom:10px;}
+  .listHeadBtns{display:flex; gap:6px;}
+  .miniPill{border:none; background:var(--plain-bg); color:var(--text-sub); font-size:12px; font-weight:600; padding:5px 11px; border-radius:14px; cursor:pointer;}
+  .miniPill.on{background:var(--add-btn-bg); color:var(--add-btn-text);}
   .brandHead .name{flex:1; min-width:0;}
   .brandHead .name p.n{font-size:14.5px; font-weight:600; margin:0;}
   .brandHead .name p.c{font-size:11px; margin:2px 0 0; opacity:.75;}
@@ -368,7 +376,7 @@
 
     <div class="filterRow" id="filterRow"></div>
 
-    <p class="sectionTitle">브랜드별 보유 현황</p>
+    <div class="listHead"><p class="sectionTitle" style="margin:0;">브랜드별 보유 현황</p><span class="listHeadBtns" id="listHeadBtns"></span></div>
     <div id="brandList"></div>
   </div>
 
@@ -460,9 +468,10 @@ async function loadAll(){
     const record = (data && data.record) ? data.record : {};
     units = Array.isArray(record.units) ? record.units : [];
     events = Array.isArray(record.events) ? record.events : [];
+    brandOrderList = Array.isArray(record.brandOrder) ? record.brandOrder : [];
   }catch(e){
     console.error('불러오기 실패', e);
-    units = []; events = [];
+    units = []; events = []; brandOrderList = [];
   }
 
   calViewYear = today.getFullYear();
@@ -488,7 +497,7 @@ function persistAll(){
           'Content-Type': 'application/json',
           'X-Access-Key': JSONBIN_ACCESS_KEY
         },
-        body: JSON.stringify({ units, events })
+        body: JSON.stringify({ units, events, brandOrder: brandOrderList })
       });
     }catch(e){
       console.error('저장 실패', e);
@@ -823,6 +832,7 @@ function saveUnit(){
   const sumPaid = finalGroup.reduce((s,u) => s + u.paid, 0);
   if(finalGroup.length) finalGroup[finalGroup.length - 1].paid += (totalPaid - sumPaid);
 
+  expandedBrands.add(brand); saveExpandedBrands();
   persistUnits();
   closeForm();
   render();
@@ -874,6 +884,7 @@ function saveSetUnits(){
     });
   });
 
+  expandedBrands.add(brand); saveExpandedBrands();
   persistUnits();
   closeForm();
   render();
@@ -907,6 +918,7 @@ function render(){
   renderHomeUnopened();
   renderFilterRow();
   renderList();
+  renderBrandHead();
 }
 
 function renderStats(){
@@ -955,7 +967,7 @@ function renderHomeUnopened(){
   }
   const byBrand = {};
   unopened.forEach(u => { (byBrand[u.brand] = byBrand[u.brand] || []).push(u); });
-  const brandOrder = Object.keys(byBrand).sort((a,b) => byBrand[b].length - byBrand[a].length);
+  const brandOrder = getFullBrandOrder().filter(b => b in byBrand);
 
   el.innerHTML = brandOrder.map(brand => {
     const items = byBrand[brand];
@@ -1011,6 +1023,7 @@ function renderFilterRow(){
 function setFilter(key){ filterStatus = key; render(); }
 
 function renderList(){
+  renderedBrandOrder = [];
   const container = document.getElementById('brandList');
   const filtered = filterStatus === 'all' ? units : units.filter(u => u.status === filterStatus);
 
@@ -1025,11 +1038,10 @@ function renderList(){
 
   const byBrand = {};
   filtered.forEach(u => { (byBrand[u.brand] = byBrand[u.brand] || []).push(u); });
-  const brandOrder = Object.keys(byBrand).sort((a,b) =>
-    byBrand[b].reduce((s,u)=>s+u.paid,0) - byBrand[a].reduce((s,u)=>s+u.paid,0)
-  );
+  const brandOrder = getFullBrandOrder().filter(b => b in byBrand);
+  renderedBrandOrder = brandOrder;
 
-  container.innerHTML = brandOrder.map(brand => {
+  container.innerHTML = brandOrder.map((brand, bi) => {
     const bItems = byBrand[brand];
     const brandTotal = bItems.reduce((s,u)=>s+u.paid,0);
     const cls = colorFor(brand);
@@ -1102,22 +1114,72 @@ function renderList(){
         </div>`;
     }).join('');
 
+    const isOpen = !brandEditMode && expandedBrands.has(brand);
+    const rightSide = brandEditMode
+      ? `<span class="orderBtns"><button class="orderBtn" ${bi === 0 ? 'disabled' : ''} onclick="event.stopPropagation(); moveBrand(${bi}, -1)">▲</button><button class="orderBtn" ${bi === brandOrder.length - 1 ? 'disabled' : ''} onclick="event.stopPropagation(); moveBrand(${bi}, 1)">▼</button></span>`
+      : `<span class="total">${fmt(brandTotal)}</span><span class="chevB">${isOpen ? '▲' : '▼'}</span>`;
     return `
       <div class="brandCard">
-        <div class="brandHead ${cls}">
+        <div class="brandHead ${cls}" onclick="toggleBrand(${bi})">
           <div class="name">
             <p class="n">${escapeHtml(brand)}</p>
             <p class="c">${productOrder.length}종 제품</p>
           </div>
-          <span class="total">${fmt(brandTotal)}</span>
+          ${rightSide}
         </div>
-        <div class="productList">${groupsHtml}</div>
+        <div class="productList" style="display:${isOpen ? 'block' : 'none'};">${groupsHtml}</div>
       </div>`;
   }).join('');
 
   // 열려있는 낱개 상태변경 인라인 폼의 날짜입력 바인딩
   if(openingUnitId) bindDateGroup('open_'+openingUnitId);
   if(finishingUnitId) bindDateGroup('finish_'+finishingUnitId);
+}
+
+/* ---- 브랜드 순서 · 접기/펼치기 ---- */
+let brandOrderList = [];      // 내가 정한 브랜드 순서 (jsonbin에 저장)
+let brandEditMode = false;    // 순서 편집 중인지
+let renderedBrandOrder = [];  // 현재 화면에 그려진 브랜드 순서
+const expandedBrands = new Set();  // 펼쳐둔 브랜드 (이 기기에 기억, 처음엔 모두 접힘)
+const EXPANDED_KEY = 'cosmetic_item_expanded_brands';
+try{ JSON.parse(localStorage.getItem(EXPANDED_KEY) || '[]').forEach(b => expandedBrands.add(b)); }catch(e){}
+function saveExpandedBrands(){ try{ localStorage.setItem(EXPANDED_KEY, JSON.stringify([...expandedBrands])); }catch(e){} }
+
+function getFullBrandOrder(){
+  const totals = {};
+  units.forEach(u => { totals[u.brand] = (totals[u.brand] || 0) + u.paid; });
+  const known = brandOrderList.filter(b => b in totals);
+  const rest = Object.keys(totals).filter(b => !known.includes(b)).sort((a,b) => totals[b] - totals[a]);
+  return [...known, ...rest];   // 새 브랜드는 맨 아래에 붙음
+}
+function toggleBrand(i){
+  if(brandEditMode) return;
+  const b = renderedBrandOrder[i];
+  if(b === undefined) return;
+  if(expandedBrands.has(b)) expandedBrands.delete(b); else expandedBrands.add(b);
+  saveExpandedBrands(); render();
+}
+function toggleAllBrands(){
+  const anyOpen = renderedBrandOrder.some(b => expandedBrands.has(b));
+  renderedBrandOrder.forEach(b => anyOpen ? expandedBrands.delete(b) : expandedBrands.add(b));
+  saveExpandedBrands(); render();
+}
+function toggleBrandEdit(){ brandEditMode = !brandEditMode; render(); }
+function moveBrand(i, dir){
+  const a = renderedBrandOrder[i], b = renderedBrandOrder[i + dir];
+  if(a === undefined || b === undefined) return;
+  const full = getFullBrandOrder();
+  const ia = full.indexOf(a), ib = full.indexOf(b);
+  [full[ia], full[ib]] = [full[ib], full[ia]];
+  brandOrderList = full;
+  persistAll(); render();
+}
+function renderBrandHead(){
+  const el = document.getElementById('listHeadBtns');
+  if(!el) return;
+  const anyOpen = renderedBrandOrder.some(b => expandedBrands.has(b));
+  el.innerHTML = (brandEditMode ? '' : `<button class="miniPill" onclick="toggleAllBrands()">${anyOpen ? '모두 접기' : '모두 펼치기'}</button>`) +
+    `<button class="miniPill ${brandEditMode ? 'on' : ''}" onclick="toggleBrandEdit()">${brandEditMode ? '완료' : '순서 편집'}</button>`;
 }
 
 const expandedBatches = new Set();
