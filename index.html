@@ -798,12 +798,14 @@ function saveUnit(){
   let finalGroup;
   if(formMode === 'edit' && editingBatchIds && editingBatchIds.length){
     let group = editingBatchIds.map(id => units.find(u => u.id === id)).filter(Boolean);
-    group.forEach(u => Object.assign(u, base));
+    const wasSet = group.some(u => u.isSet || u.setName);   // 세트로 입력한 묶음이면 수정해도 세트 유지
+    group.forEach(u => { Object.assign(u, base); if(wasSet) u.isSet = true; });
 
     const diff = qty - group.length;
     if(diff > 0){
       for(let i=0; i<diff; i++){
         const nu = { id: genId(), ...base, status:'unopened', openDate:'', finishDate:'' };
+        if(wasSet) nu.isSet = true;
         units.push(nu);
         group.push(nu);
       }
