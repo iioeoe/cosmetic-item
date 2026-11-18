@@ -359,7 +359,7 @@
         </div>
 
         <div class="field" id="setSuggestWrap" style="display:none;">
-          <label>이전 세트 불러오기 (누르면 옵션·정상가 자동 입력)</label>
+          <label>이전 세트 불러오기 (여러 개 눌러서 차례로 추가할 수 있어요)</label>
           <div class="chipRow" id="setSuggest"></div>
         </div>
         <div id="setRows"></div>
@@ -1243,7 +1243,7 @@ function refreshSuggest(){
   if(isSet && exact){
     suggestSets = buildSetIndex(exact);
     $('setSuggest').innerHTML = suggestSets.map((st,i) =>
-      `<button type="button" class="sChip" onclick="pickSet(${i})">${escapeHtml(st.name)} · ${st.comps.map(c => escapeHtml(c.option1 || '기본')).join(' + ')}</button>`).join('');
+      `<button type="button" class="sChip" onclick="pickSet(${i}, this)">${escapeHtml(st.name)} · ${st.comps.map(c => escapeHtml(c.option1 || '기본')).join(' + ')}</button>`).join('');
     $('setSuggestWrap').style.display = suggestSets.length ? 'block' : 'none';
   }else{
     $('setSuggestWrap').style.display = 'none'; $('setSuggest').innerHTML = '';
@@ -1272,19 +1272,25 @@ function pickFreq(i){
   document.getElementById('prodSuggest').style.display = 'none';
   document.getElementById('f_paid').focus();
 }
-function pickSet(i){
+function pickSet(i, btn){
   const st = suggestSets[i]; if(!st) return;
-  document.getElementById('setRows').innerHTML = '';
-  setRowIds = [];
+  const val = id => document.getElementById(id);
+  // 비어 있는 기본 행만 정리하고, 이미 채워진 행은 그대로 둔 채 아래에 추가 (여러 상품을 차례로 불러올 수 있음)
+  setRowIds.slice().forEach(idx => {
+    if(!val('setRowProduct_' + idx).value.trim() && !val('setRowOption_' + idx).value.trim() && !val('setRowRegular_' + idx).value) removeSetRow(idx);
+  });
   st.comps.forEach(c => {
+    const dup = setRowIds.some(idx => val('setRowProduct_' + idx).value.trim() === st.name && val('setRowOption_' + idx).value.trim() === c.option1);
+    if(dup) return;   // 같은 상품·옵션이 이미 있으면 건너뜀
     addSetRow();
     const idx = setRowIds[setRowIds.length - 1];
-    document.getElementById('setRowProduct_' + idx).value = st.name;
-    document.getElementById('setRowOption_' + idx).value = c.option1;
-    document.getElementById('setRowRegular_' + idx).value = c.regular;
-    document.getElementById('setRowQty_' + idx).value = c.qty;
+    val('setRowProduct_' + idx).value = st.name;
+    val('setRowOption_' + idx).value = c.option1;
+    val('setRowRegular_' + idx).value = c.regular;
+    val('setRowQty_' + idx).value = c.qty;
   });
-  document.getElementById('f_setTotalPaid').focus();
+  if(btn) btn.style.opacity = '.45';   // 이미 불러온 칩은 흐리게 표시
+  val('f_setTotalPaid').focus();
 }
 
 /* ---- 브랜드 순서 · 접기/펼치기 ---- */
