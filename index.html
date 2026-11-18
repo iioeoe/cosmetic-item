@@ -225,6 +225,7 @@
   .inlineDateForm button{font-size:11px; padding:5px 9px; border-radius:6px; border:none; cursor:pointer; flex-shrink:0;}
   .inlineDateForm .ok{background:var(--text); color:#fff;}
   .inlineDateForm .no{background:var(--plain-bg); color:var(--text-sub);}
+  .inlineDateForm .hintTxt{flex:1 1 100%; font-size:10.5px; color:var(--text-mute);}
 
   .calHead{display:flex; align-items:center; justify-content:space-between; margin-bottom:14px;}
   .calHead button{border:none; background:var(--cream); width:30px; height:30px; border-radius:8px; font-size:14px; cursor:pointer; color:var(--text-sub);}
@@ -919,7 +920,7 @@ function startOpen(id){ openingUnitId = id; finishingUnitId = null; render(); }
 function cancelOpen(){ openingUnitId = null; render(); }
 function confirmOpen(id){
   const res = getDateValue('open_'+id);
-  if(res.status !== 'ok') return;
+  if(res.status === 'incomplete') return;   // 비우거나 끝까지 입력하면 저장, 일부만 입력하면 막음
   const u = units.find(x => x.id === id);
   u.status = 'inuse'; u.openDate = res.value;
   openingUnitId = null;
@@ -929,7 +930,7 @@ function startFinish(id){ finishingUnitId = id; openingUnitId = null; render(); 
 function cancelFinish(){ finishingUnitId = null; render(); }
 function confirmFinish(id){
   const res = getDateValue('finish_'+id);
-  if(res.status !== 'ok') return;
+  if(res.status === 'incomplete') return;
   const u = units.find(x => x.id === id);
   u.status = 'used'; u.finishDate = res.value;
   finishingUnitId = null;
@@ -1347,11 +1348,11 @@ function renderUnitRow(u, label, showCopy){
   if(openingUnitId === u.id){
     actionHtml = `<div class="inlineDateForm">${dateGroupHtml('open_'+u.id)}
       <button class="ok" onclick="confirmOpen('${u.id}')">확인</button>
-      <button class="no" onclick="cancelOpen()">취소</button></div>`;
+      <button class="no" onclick="cancelOpen()">취소</button><span class="hintTxt">날짜를 몰라도 비워둔 채 확인하면 저장돼요</span></div>`;
   }else if(finishingUnitId === u.id){
     actionHtml = `<div class="inlineDateForm">${dateGroupHtml('finish_'+u.id)}
       <button class="ok" onclick="confirmFinish('${u.id}')">확인</button>
-      <button class="no" onclick="cancelFinish()">취소</button></div>`;
+      <button class="no" onclick="cancelFinish()">취소</button><span class="hintTxt">날짜를 몰라도 비워둔 채 확인하면 저장돼요</span></div>`;
   }
 
   let statusBtn = '';
